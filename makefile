@@ -1,10 +1,11 @@
 CC = g++
-flags = -I/opt/X11/include
+flags = -IEigen
 
-RayTracer: camera.o
-	${CC} -o RayTracer camera.o ${flags}
-camera.o: camera.cpp camera.h
-	${CC} -c camera.cpp 
+
+scene.o: Main.cpp Main.h
+	${CC} -c Main.cpp ${flags}
+
+
 clean :
 	rm -f *.o RayTracer
 
