@@ -8,9 +8,9 @@
 
 #include "Ray.h"
 
-class Ray{
-    Ray(){
-        
-        Eigen::Vector3f ray;
-    }
-};
+Ray::Ray(Point pos, Eigen::Vector3f dir, float t_min, float t_max){
+    this->dir = dir;
+    this->t_min = t_min;
+    this->t_max = t_max;
+    this->pos = pos;
+}

@@ -14,6 +14,8 @@ using namespace std;
 #include <string> 
 #include <fstream>
 #include <sstream>
+#include "Ray.h"
+#include "Point.h"
 
 
 
@@ -28,42 +30,6 @@ typedef struct Camera{
     
 }Camera;
 
-//****************************************************
-// Point
-//****************************************************
-class Point{
-public:
-    float x;
-    float y;
-    float z;
-    Point(int, int, int);
-    Point();
-};
-Point::Point(int x, int y, int z){
-    this->x = x;
-    this->y = y;
-    this->z = z;
-}
-Point::Point(){
-}
-
-//****************************************************
-// Ray
-//****************************************************
-class Ray{
-public:
-    Ray(Point, Eigen::Vector3f, float, float);
-    Eigen::Vector3f dir;
-    float t_min, t_max;
-    Point pos;
-    
-};
-Ray::Ray(Point pos, Eigen::Vector3f dir, float t_min, float t_max){
-    this->dir = dir;
-    this->t_min = t_min;
-    this->t_max = t_max;
-    this->pos = pos;
-}
 
 //****************************************************
 // GenerateRay
