@@ -10,5 +10,10 @@
 #define ____Scene__
 
 #include <iostream>
+//#include "Ray.h" 
 
 #endif /* defined(____Scene__) */
+
+//class Main{
+//	Ray GenerateRay(Camera cam, int pix_i, int pix_j, int height, int width);
+//};

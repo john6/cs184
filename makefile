@@ -3,7 +3,8 @@ flags = -IEigen
 
 
 scene.o: Main.cpp Main.h
-	${CC} -c Main.cpp ${flags}
+	${CC} ${flags} Main.cpp -o Main ${flags}
+
 
 
 clean :
