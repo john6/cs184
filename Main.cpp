@@ -46,16 +46,59 @@ public:
     Light(){}
 };
 
+
+//****************************************************
+// Global Variabels
+//****************************************************
+//Camera myCamera;
+int height, width, depth;
+Color ambientColor, specularColor, emissionColor, diffuseColor; 
+string out_file; 
+int maxvertsnorms;
+const int DIR = 1;
+const int POINT = 0; 
+list<Light> AllLights; 
+
 //****************************************************
 // Camera
 //****************************************************
-typedef struct Camera{
-    Eigen::Vector3f look_from;
-    Eigen::Vector3f look_at;
-    Eigen::Vector3f up;
-    float FOVY;
+class Camera{
+public:
+    float aspect_ratio, verticle_dist_from_center, horizontal_dist_from_center, 
+              vert_length, hor_length, pixel_length, half_pixel_offset, FOVY;
+
+    Eigen::Vector3f look_from, look_at, up, right, center_screen_coord, top_left_c, top_right_c, 
+                    bottom_left_c, bottom_right_C;
+    Camera(){};
+   
+  Camera(Eigen::Vector3f eye, Eigen::Vector3f view_dir, Eigen::Vector3f up_dir, float field_of_view){
+       look_from = eye;
+       look_at = view_dir;
+       up = up_dir;
+       FOVY = field_of_view;
+       look_at.normalize(); //normalize the viewing direction
+       up.normalize(); //normalize up vector
+       aspect_ratio = (width/height); // give ratio of horizontal screen size to verticle
+       right = look_at.cross(up); //create horizontal direction based on hand rule
+       center_screen_coord = look_from + look_at; //create pixel at center of "screen"
+       verticle_dist_from_center = tan(FOVY/2);
+       horizontal_dist_from_center = verticle_dist_from_center * aspect_ratio;
+       top_left_c = center_screen_coord + (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
+       top_right_c = center_screen_coord + (verticle_dist_from_center * up) + (horizontal_dist_from_center * right);
+       bottom_left_c = center_screen_coord - (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
+       top_right_c = center_screen_coord - (verticle_dist_from_center * up) + (horizontal_dist_from_center * right);
+       vert_length = verticle_dist_from_center * 2;
+       hor_length = horizontal_dist_from_center * 2;
+       pixel_length = vert_length/height;
+       half_pixel_offset = pixel_length/2;
+
+   }
+
+
+
+
     
-}Camera;
+};
 
 //****************************************************
 // Point
@@ -95,31 +138,40 @@ public:
 //****************************************************
 Ray GenerateRay(Camera cam, int pix_i, int pix_j, int height, int width){
     //THIS IS WHERE WE SHOULD DO THOSE DANK EQUATIONS
-    Eigen::Vector3f w = cam.look_at - cam.look_from;
-    w.normalize();
-    Eigen::Vector3f u = cam.up.cross(w);
-    w.normalize();
-    Eigen::Vector3f v = w.cross(u);
+       //  P = (u)(vLL+ (1!v)UL) + (1!u)(vLR+ (1!v)UR)
+   float dist_from_left_side = cam.half_pixel_offset + cam.pixel_length * pix_i; //this could be fucking j for all I know right now
+   float dist_from_top = cam.half_pixel_offset + cam.pixel_length * pix_j; //this could be fucking i for all I know right now
+
+
+    Eigen::Vector3f u(0,0,0);
     Point hi;
     return Ray::Ray(hi, u, 1, 1);
 }
 
-//****************************************************
-// Global Variabels
-//****************************************************
-Camera myCamera;
-int height, width, depth;
-Color ambientColor, specularColor, emissionColor, diffuseColor; 
-string out_file; 
-int maxvertsnorms;
-const int DIR = 1;
-const int POINT = 0; 
-list<Light> AllLights; 
+
 
 //****************************************************
 // Shading Terms
 //****************************************************
+Eigen::Vector3f ambientTerm(Color color, Light myLight){
+    Eigen::Vector3f ambient = Eigen::Vector3f(color.r, color.g, color.b);
+    ambient[0] = ambientColor.r*myLight.LightRGB.r;
+    ambient[1] = ambientColor.g*myLight.LightRGB.g;
+    ambient[2] = ambientColor.b*myLight.LightRGB.b;
+    return ambient;
+}
 
+Eigen::Vector3f diffuseTerm(Color color, Light myLight, Eigen::Vector3f surf_norm){
+     Eigen::Vector3f d_color; 
+
+     return d_color; 
+}
+
+Eigen::Vector3f specularTerm(Color color, Eigen::Vector3f surf_normal, Light myLight, Eigen::Vector3f viewVector){
+    Eigen::Vector3f r_vec = (2*(myLight.LightVector.dot(surf_normal))*surf_normal) - myLight.LightVector;
+
+    return r_vec; 
+}
 
 
 
@@ -159,10 +211,10 @@ bool parseLine(string line){
     //CAMERA
     }else if (operand.compare("camera") == 0){
          readvals(ss, 10, values);
-         myCamera.look_from = Eigen::Vector3f(values[0], values[1], values[2]);
-         myCamera.look_at = Eigen::Vector3f(values[3], values[4], values[5]);
-         myCamera.up = Eigen::Vector3f(values[6], values[7], values[8]);
-         myCamera.FOVY = values[9];
+     //    myCamera.look_from = Eigen::Vector3f(values[0], values[1], values[2]);
+       //  myCamera.look_at = Eigen::Vector3f(values[3], values[4], values[5]);
+       //  myCamera.up = Eigen::Vector3f(values[6], values[7], values[8]);
+        // myCamera.FOVY = values[9];
 
     //GEOMETRY
     }else if (operand.compare("sphere") == 0){
@@ -321,9 +373,27 @@ int outputFrame(Color** buffer){
 int main(int argc, char* argv[]){
 
     parseScene(argv[1]);
+
+       //setting params to specific things just to test
+   height = 10;
+   width = 10;
+   Eigen::Vector3f eye = Eigen::Vector3f(0,3,0);
+   Eigen::Vector3f view_dir = Eigen::Vector3f(1,0,0);
+   Eigen::Vector3f up_dir = Eigen::Vector3f(0,1,0);
+   float fovY = 0.78539816339; //  pi/4
+
+     // set up camera
+   //Camera(Eigen::Vector3f eye, Eigen::Vector3f view_dir, Eigen::Vector3f up_dir, float field_of_view)
+   Camera cam = Camera(eye, view_dir, up_dir, fovY);
+   //printf("float: %f", floatValue);
+   printf("\ntop_left_c: %f, %f, %f", cam.top_left_c(0), cam.top_left_c(1), cam.top_left_c(2));
+   printf("\ntop_right_c: %f, %f, %f", cam.top_right_c(0), cam.top_right_c(1), cam.top_right_c(2));
+   printf("\nbottom_left_c: %f, %f, %f", cam.bottom_left_c(0), cam.bottom_left_c(1), cam.bottom_left_c(2));
+   printf("\nbottom_right_C: %f, %f, %f", cam.bottom_right_C(0), cam.bottom_right_C(1), cam.bottom_right_C(2));
+   
     
-    Color** testbuffer = render(myCamera, height, width);
-    outputFrame(testbuffer);
+   // Color** testbuffer = render(myCamera, height, width);
+   // outputFrame(testbuffer);
     
     return 0;
 }
