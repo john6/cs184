@@ -1,13 +1,13 @@
 //
-//  Scene.h
+//  Main.h
 //  
 //
 //  Created by Shannon Axelrod on 2/23/14.
 //
 //
 
-#ifndef ____Scene__
-#define ____Scene__
+#ifndef ____Main__
+#define ____Main__
 
 #include <iostream>
 //#include "Ray.h" 
