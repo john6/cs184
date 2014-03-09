@@ -147,6 +147,7 @@ public:
        up = up_dir;
        FOVY = field_of_view;
 
+       /*
       // if(!(look_at == ZER_VEC))
       look_at.normalize(); //normalize the viewing direction      
       // if(!(up == ZER_VEC))
@@ -167,11 +168,14 @@ public:
        LL = center_screen_coord - (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
        LR = center_screen_coord - (verticle_dist_from_center * up) + (horizontal_dist_from_center * right);
 
+
        vert_length = verticle_dist_from_center * 2;
        hor_length = horizontal_dist_from_center * 2;
        pixel_length = vert_length/height;
        half_pixel_offset = pixel_length/2;
+    */
    }
+
     
 };
 
@@ -184,16 +188,18 @@ Camera myCamera;
 //****************************************************
 Ray GenerateRay(Camera cam, int pix_i, int pix_j){
     //THIS IS WHERE WE SHOULD DO THOSE DANK EQUATIONS
-    float u;
-    float v; 
-    Eigen::Vector3f P;
 
+    Vector3f w = cam.look_from - cam.look_at;
+    w.normalize();
+    Vector3f u =  cam.up.cross(w);
+    u.normalize();
+    Vector3f v = w.cross(u);
 
-    u = (cam.half_pixel_offset + pix_i*cam.pixel_length)/cam.vert_length; 
-    v = (cam.half_pixel_offset + pix_j*cam.pixel_length)/cam.hor_length; 
-    P = u*(v*cam.LL + (1-v)*cam.UL) +(1-u)*(v*cam.LR + (1-v)*cam.UR);
-
-    return Ray(cam.look_from, P, 0, 30);
+    float fovy = cam.FOVY * PI / 180.0; // degree to radian
+    float x_range = tan(fovy / 2.0) * width / height;
+    float b = tan(fovy / 2.0) * (height/2.0 - pix_i) / (height / 2.0);
+    float a =  x_range * (pix_j - width/2.0) / (width / 2.0);
+    return Ray(cam.look_from, -w + u*a + v*b, 0, 30);
 
 }
 
@@ -270,16 +276,16 @@ bool parseLine(string line){
     //CAMERA
     }else if (operand.compare("camera") == 0){
          readvals(ss, 10, values);
-         Camera temp(Eigen::Vector3f(values[0], values[1], values[2]), 
-                     Eigen::Vector3f(values[3], values[4], values[5]), 
-                     Eigen::Vector3f(values[6], values[7], values[8]),
+         Camera temp(Vector3f(values[0], values[1], values[2]), 
+                     Vector3f(values[3], values[4], values[5]), 
+                     Vector3f(values[6], values[7], values[8]),
                      values[9]);
          myCamera = temp;
 
     //GEOMETRY
     }else if (operand.compare("sphere") == 0){
         readvals(ss, 4, values);
-        Sphere newSphere(Vector3f(values[0], values[1], values[2]), values[4]);
+        Sphere newSphere(Vector3f(values[0], values[1], values[2]), values[3]);
         AllSpheres[numSpheres] = newSphere;
         numSpheres++;
 
@@ -317,14 +323,14 @@ bool parseLine(string line){
     //LIGHTS
     }else if (operand.compare("directional") == 0){
         readvals(ss, 6, values);
-        Light new_DirLight(DIR, Eigen::Vector3f(values[0], values[1], values[2]), 
+        Light new_DirLight(DIR, Vector3f(values[0], values[1], values[2]), 
                                 Color(values[3], values[4], values[5]));
         AllLights[numLights] = new_DirLight;
         numLights++;
 
     }else if (operand.compare("point") == 0){
         readvals(ss, 6, values);
-        Light new_pointLight(POINT, Eigen::Vector3f(values[0], values[1], values[2]), 
+        Light new_pointLight(POINT, Vector3f(values[0], values[1], values[2]), 
                                     Color(values[3], values[4], values[5]));
         AllLights[numLights] = new_pointLight;
         numLights++;
@@ -376,33 +382,39 @@ void parseScene(string filename){
 // Intersections
 //****************************************************
 bool sphereIntersection(Sphere sphere, Ray ray){
-    Eigen::Vector3f p0 = ray.start; 
-    Eigen::Vector3f dir = ray.dir; 
-    Eigen::Vector3f center = sphere.pos; 
-    float discriminant, s0, s1;
-
+    Vector3f p0 = ray.start; 
+    Vector3f dir = ray.dir; 
+    float discriminant, s0, s1, t;
+    Vector3f center = sphere.pos;
     float a = dir.dot(dir);
-    printf("\n%s%f","a:", a);
     float b = 2*p0.dot(dir);
-    printf("\n%s%f", "b:", b);
-    float c = (p0 ).dot(p0) - (sphere.radius*sphere.radius);
-    printf("\n%s%f","c:", c);
-    
-
-    discriminant = (b*b) - (4*a*c);
-     printf("\n%s%f\n\n\n","discriminant:", discriminant);
-  //  printf("\n%f",discriminant);
-
+    float c = p0.dot(p0) - (sphere.radius*sphere.radius);
+    discriminant = (b*b)-(4*a*c);
     if(discriminant < 0){
         return false; 
     }
-    else{
-        float sqrt_dist = sqrt(discriminant);
-        s0 = (-b - sqrt_dist) / (2*a);
-        s1 = (-b + sqrt_dist) / (2*a);
+    float discSqrt = sqrt(discriminant);
+    float q;
+    if(b<0)
+        q = (-b - discSqrt)/2;
+    else
+        q = (-b + discSqrt)/2;
+
+    s0 = q/a;
+    s1 = c/q;
+    if(s0>s1){
+        float temp = s0; 
+        s0 = s1;
+        s1 = temp; 
     }
-   // if(s1<0)
-     //   return false;
+    if(s1<0){
+        return false;
+    }
+    if(s0<0){
+        t = s1; 
+        return true; 
+    }
+    t = s0; 
     return true;
     
     
@@ -423,7 +435,7 @@ Color Trace(Ray ray, int depth) {
   // }
         for(int i=0; i<numSpheres; i++){
             if((sphereIntersection(AllSpheres[i], ray))){
-                //printf("do i detect an intersection?");
+               // printf("do i detect an intersection?");
                 intersection = true;
                break;
            }
@@ -432,7 +444,7 @@ Color Trace(Ray ray, int depth) {
         // No intersection
         return black_pix;
     }
-    /*
+    
         for (int i=0; i<numLights; i++) {
            // lights[i].generateLightRay(in.local, &lray, &lcolor);
             Light MyLight = AllLights[i]; 
@@ -447,7 +459,7 @@ Color Trace(Ray ray, int depth) {
                 temp = ambient + diffuse + specular;
                 returnColor.rgb_vec = returnColor.rgb_vec.cross(temp); 
         }
-        
+        /*
         // Handle mirror reflection
         if (brdf.kr > 0) {
             reflectRay = createReflectRay(in.local, ray);
@@ -455,13 +467,12 @@ Color Trace(Ray ray, int depth) {
             // Make a recursive call to trace the reflected ray
             trace(reflectRay, depth+1, &tempColor);
             *color += brdf.kr * tempColor;
-        }
-        
+        } 
         }
         */
-       // returnColor.reset(); 
-       // return returnColor; 
-        return Color(1, 0, 0);
+        returnColor.reset(); 
+        return returnColor; 
+       // return Color(1, 0, 0);
 }
 
 

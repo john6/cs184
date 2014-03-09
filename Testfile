@@ -1,5 +1,10 @@
-size 100 100
+size 240 240
 
-output saturdayatsoda
-camera 0 3 0 1 0 0 0 1 0 1.57079632679
-sphere 0 3 0 2
+output sundaybitches
+camera -4 -4 4 1 0 0 0 1 0 30
+sphere 1 0 0 1
+ambient .1 .1 .1
+directional 0 0 1 .5 .5 .5 
+point 4 0 4 .5 .5 .5
+diffuse 1 0 0 
+specular 1 0 0
