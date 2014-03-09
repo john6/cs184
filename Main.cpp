@@ -111,7 +111,6 @@ public:
 //****************************************************
 // Global Variabels
 //****************************************************
-//Camera myCamera;
 int height, width, depth = 5, threshhold;
 Color ambientColor, specularColor, emissionColor, diffuseColor; 
 Color black_pix(0.0, 0.0, 0.0);
@@ -124,6 +123,26 @@ Light AllLights[10]; int numLights;
 Sphere AllSpheres[100]; int numSpheres;
 Tri AllTri[100]; int numTri;
 Point vertices[100]; int numVerts;
+#define PI 3.14159265  
+
+//****************************************************
+// Ray
+//****************************************************
+class Ray{
+public:
+    Eigen::Vector3f dir;
+    float t_min, t_max;
+    Eigen::Vector3f start;
+    Eigen::Vector3f p0; 
+    Ray(Eigen::Vector3f _pos, Eigen::Vector3f _dir, float _t_min, float _t_max){
+        dir = _dir;
+        t_min = _t_min;
+        t_max = _t_max;
+        start = _pos;
+    };
+
+ Ray(){}   
+};
 
 //****************************************************
 // Camera
@@ -133,12 +152,12 @@ public:
     float aspect_ratio, verticle_dist_from_center, horizontal_dist_from_center, 
               vert_length, hor_length, pixel_length, half_pixel_offset, FOVY;
 
-    Eigen::Vector3f look_from, look_at, up, right, center_screen_coord, top_left_c, top_right_c, 
-                    bottom_left_c, bottom_right_c;
+    Eigen::Vector3f look_from, look_at, up, right, center_screen_coord, UL, UR, 
+                    LL, LR;
     Camera(){};
    
-  Camera(Eigen::Vector3f eye, Eigen::Vector3f view_dir, Eigen::Vector3f up_dir, float field_of_view){
-       look_from = eye;
+  Camera(Eigen::Vector3f _eye, Eigen::Vector3f view_dir, Eigen::Vector3f up_dir, float field_of_view){
+       look_from = _eye;
        look_at = view_dir;
        up = up_dir;
        FOVY = field_of_view;
@@ -149,57 +168,37 @@ public:
        center_screen_coord = look_from + look_at; //create pixel at center of "screen"
        verticle_dist_from_center = tan(FOVY/2);
        horizontal_dist_from_center = verticle_dist_from_center * aspect_ratio;
-       top_left_c = center_screen_coord + (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
-       top_right_c = center_screen_coord + (verticle_dist_from_center * up) + (horizontal_dist_from_center * right);
-       bottom_left_c = center_screen_coord - (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
-       top_right_c = center_screen_coord - (verticle_dist_from_center * up) + (horizontal_dist_from_center * right);
+       UL = center_screen_coord + (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
+       UR = center_screen_coord + (verticle_dist_from_center * up) + (horizontal_dist_from_center * right);
+       LL = center_screen_coord - (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
+       LR = center_screen_coord - (verticle_dist_from_center * up) + (horizontal_dist_from_center * right);
        vert_length = verticle_dist_from_center * 2;
        hor_length = horizontal_dist_from_center * 2;
        pixel_length = vert_length/height;
        half_pixel_offset = pixel_length/2;
-
    }
-   
-
-
-
-
     
 };
 
 
-//****************************************************
-// Ray
-//****************************************************
-class Ray{
-public:
-    Eigen::Vector3f dir;
-    float t_min, t_max;
-    Point pos;
-    Ray(Point _pos, Eigen::Vector3f _dir, float _t_min, float _t_max){
-        dir = _dir;
-        t_min = _t_min;
-        t_max = _t_max;
-        pos = _pos;
-    };
- Ray(){}   
-};
-
+Camera myCamera;
 
 
 //****************************************************
 // GenerateRay
 //****************************************************
-Ray GenerateRay(Camera cam, int pix_i, int pix_j, int height, int width){
+Ray GenerateRay(Camera cam, int pix_i, int pix_j){
     //THIS IS WHERE WE SHOULD DO THOSE DANK EQUATIONS
-       //  P = (u)(vLL+ (1!v)UL) + (1!u)(vLR+ (1!v)UR)
-   float dist_from_left_side = cam.half_pixel_offset + cam.pixel_length * pix_i; 
-   float dist_from_top = cam.half_pixel_offset + cam.pixel_length * pix_j; 
+    float u;
+    float v; 
+    Eigen::Vector3f P;
 
+    u = (cam.half_pixel_offset + pix_i*cam.pixel_length)/cam.vert_length; 
+    v = (cam.half_pixel_offset + pix_j*cam.pixel_length)/cam.hor_length; 
+    P = u*(v*cam.LL + (1-v)*cam.UL) +(1-u)*(v*cam.LR + (1-v)*cam.UR);
 
-    Eigen::Vector3f u(0,0,0);
-    Point hi;
-    return Ray::Ray(hi, u, 1, 1);
+    return Ray(cam.look_from, P, 0, 30);
+
 }
 
 
@@ -274,16 +273,19 @@ bool parseLine(string line){
 
     //CAMERA
     }else if (operand.compare("camera") == 0){
+
          readvals(ss, 10, values);
          Camera temp(Eigen::Vector3f(values[0], values[1], values[2]), 
                      Eigen::Vector3f(values[3], values[4], values[5]), 
                      Eigen::Vector3f(values[6], values[7], values[8]),
                      values[9]);
+         myCamera = temp;
 
     //GEOMETRY
     }else if (operand.compare("sphere") == 0){
         readvals(ss, 4, values);
         Sphere newSphere(Point(values[0], values[1], values[2]), values[4]);
+        AllSpheres[numSpheres] = newSphere;
         numSpheres++;
 
     }else if (operand.compare("maxverts") == 0){
@@ -379,20 +381,27 @@ void parseScene(string filename){
 // Intersections
 //****************************************************
 bool sphereIntersection(Sphere sphere, Ray ray){
-    Eigen::Vector3f p0 = ray.pos.pt_vec; 
-    Eigen::Vector3f p1 = ray.dir; 
-    Eigen::Vector3f d_vec = p1 - p0; 
+    Eigen::Vector3f p0 = ray.start; 
+    Eigen::Vector3f dir = ray.dir; 
     Eigen::Vector3f center = sphere.pos.pt_vec; 
-    float discriminant; 
+    float discriminant, s0, s1;
 
-    float a = d_vec.dot(d_vec);
-    float b = ((p0 - center)*2).dot(d_vec);
-    float c = center.dot(center) + p0.dot(p0) + (-2*(center.dot(p0))) - pow(sphere.radius, 2); 
-    discriminant = pow(b,2) - (4*a*c);
-    if(discriminant >= 0){
-        return true; 
+    float a = dir.dot(dir);
+    float b = 2*(p0 - center).dot(dir);
+    float c = ((p0 - center).dot(p0 - center)) - pow(sphere.radius,2);
+    discriminant = (b*b) - (4*a*c);
+    if(discriminant < 0){
+        return false; 
     }
-    return false; 
+    else{
+        float sqrt_dist = sqrt(discriminant);
+        s0 = (-b - sqrt_dist) / (2*a);
+        s1 = (-b + sqrt_dist) / (2*a);
+    }
+    if(s1<0)
+        return false;
+    return true;
+    
 }
 
 
@@ -408,31 +417,17 @@ Color Trace(Ray ray, int depth) {
  //   if (depth > threshhold) {
    //     return black_pix;
   // }
-        for(int i; i<numSpheres; i++){
+        for(int i=0; i<numSpheres; i++){
             if((sphereIntersection(AllSpheres[i], ray))){
                 intersection = true;
-                break;
-            }
-            /*
-            if(!intersection){  //if there was a sphere intersection already no need to check this
-                for(int j; j<numTri; j++){
-                    if(INTERSECTION WITH TR ){
-                        intersection = true;
-                        break; 
-                    }
-                }
-                */
-            }
+               break;
+           }
+       }
     if (!intersection) {
         // No intersection
         return black_pix;
     }
     /*
-        // Obtain the brdf at intersection point
-        in.primitive->getBRDF(in.local, &brdf);
-        
-        // There is an intersection, loop through all light source
-        */
         for (int i=0; i<numLights; i++) {
            // lights[i].generateLightRay(in.local, &lray, &lcolor);
             Light MyLight = AllLights[i]; 
@@ -447,7 +442,6 @@ Color Trace(Ray ray, int depth) {
                 temp = ambient + diffuse + specular;
                 returnColor.rgb_vec = returnColor.rgb_vec.cross(temp); 
         }
-        /*
         
         // Handle mirror reflection
         if (brdf.kr > 0) {
@@ -461,7 +455,8 @@ Color Trace(Ray ray, int depth) {
         }
         */
         returnColor.reset(); 
-        return returnColor; 
+       // return returnColor; 
+        return Color(1, 0, 0);
 }
 
 
@@ -476,10 +471,11 @@ Color** render(Camera camera, int height, int width) {
 
     for (int i= 0; i<width; i++) {
         for (int j = 0; j<height; j++) {
-            // Ray ray = GenerateRay(camera, i, j, height, width);
-            Ray ray;
+            Ray ray = GenerateRay(camera, i, j);
             Color new_color = Trace(ray, depth);
             buffer[i][j] = new_color; 
+          //  printf("%s,%d,%d", "pixel:",i, j);
+          //  printf("%f,%f,%f\n", new_color.r, new_color.g, new_color.b);
            // buffer[i][j] = Color(i/(float)height, j/(float)width, 0);
         }
     }
@@ -536,10 +532,50 @@ int outputFrame(Color** buffer){
 
 int main(int argc, char* argv[]){
 
-    parseScene(argv[1]);
 
-   
-    Camera myCamera;
+
+
+     parseScene(argv[1]);
+
+     /*
+
+    //setting params to specific things just to test
+    height = 10;
+    width = 10;
+    Eigen::Vector3f eye = Eigen::Vector3f(0,3,0);
+    Eigen::Vector3f view_dir = Eigen::Vector3f(1,0,0);
+    Eigen::Vector3f up_dir = Eigen::Vector3f(0,1,0);
+    float fovY = 1.57079632679; //  pi/2
+
+     // set up camera
+    Camera cam = Camera(eye, view_dir, up_dir, fovY);
+
+    //printf("\n : %f", );
+    float testing_tan = tan((1.57079632679/2));
+    printf("\ntesting_tan: %f", testing_tan);
+    printf("\n aspect_ratio: %f", cam.aspect_ratio);
+    printf("\n verticle_dist_from_center: %f", cam.verticle_dist_from_center);
+    printf("\n vert_length: %f", cam.vert_length);
+    printf("\n horizontal_dist_from_center: %f", cam.horizontal_dist_from_center);
+    printf("\n hor_length: %f", cam.hor_length);
+    printf("\n pixel_length: %f", cam.pixel_length);
+    printf("\n half_pixel_offset: %f", cam.half_pixel_offset);
+    printf("\n FOVY: %f", cam.FOVY);
+    printf("\n look_from: %f, %f, %f", cam.look_from(0), cam.look_from(1), cam.look_from(2));
+    printf("\n look_at: %f, %f, %f", cam.look_at(0), cam.look_at(1), cam.look_at(2));
+    printf("\n up: %f, %f, %f", cam.up(0), cam.up(1), cam.up(2));
+    printf("\n right: %f, %f, %f", cam.right(0), cam.right(1), cam.right(2));
+    printf("\n center_screen_coord: %f, %f, %f", cam.center_screen_coord(0), cam.center_screen_coord(1), cam.center_screen_coord(2));
+    //printf("\n : %f", );
+    printf("\nUL: %f, %f, %f", cam.UL(0), cam.UL(1), cam.UL(2));
+    printf("\nUR: %f, %f, %f", cam.UR(0), cam.UR(1), cam.UR(2));
+    printf("\nLL: %f, %f, %f", cam.LL(0), cam.LL(1), cam.LL(2));
+    printf("\nLR: %f, %f, %f", cam.LR(0), cam.LR(1), cam.LR(2));
+    printf("\n");
+
+    parseScene(argv[1]);
+    */
+
     Color** testbuffer = render(myCamera, height, width);
     outputFrame(testbuffer);
     
