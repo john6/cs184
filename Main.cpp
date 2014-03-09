@@ -15,6 +15,7 @@
 #include <list>
 #include <iterator>
 using namespace std;
+using namespace Eigen; 
 
 
 
@@ -130,10 +131,10 @@ Point vertices[100]; int numVerts;
 //****************************************************
 class Ray{
 public:
-    Eigen::Vector3f dir;
+    Vector3f dir;
     float t_min, t_max;
-    Eigen::Vector3f start;
-    Eigen::Vector3f p0; 
+    Vector3f start;
+    Vector3f p0; 
     Ray(Eigen::Vector3f _pos, Eigen::Vector3f _dir, float _t_min, float _t_max){
         dir = _dir;
         t_min = _t_min;
@@ -152,22 +153,40 @@ public:
     float aspect_ratio, verticle_dist_from_center, horizontal_dist_from_center, 
               vert_length, hor_length, pixel_length, half_pixel_offset, FOVY;
 
-    Eigen::Vector3f look_from, look_at, up, right, center_screen_coord, UL, UR, 
-                    LL, LR;
+    Eigen::Vector3f look_from, up, right, UL, UR, 
+                    LL, LR, look_at, center_screen_coord;
+
+   // Vector3f center_screen_coord(0,0,0);
+
+  //  Eigen::Vector3f center_screen_coord = Eigen::Vector3f(0,0,0);
+
     Camera(){};
    
   Camera(Eigen::Vector3f _eye, Eigen::Vector3f view_dir, Eigen::Vector3f up_dir, float field_of_view){
+       //Vector3f look_at(0, 0, 0);
+       Vector3f ZER_VEC(0, 0, 0);
        look_from = _eye;
        look_at = view_dir;
        up = up_dir;
        FOVY = field_of_view;
-       look_at.normalize(); //normalize the viewing direction
-       up.normalize(); //normalize up vector
+
+       if(!(look_at == ZER_VEC))
+            look_at.normalize(); //normalize the viewing direction
+       if(!(up == ZER_VEC))
+            up.normalize(); //normalize up vector
+
        aspect_ratio = (width/height); // give ratio of horizontal screen size to verticle
        right = look_at.cross(up); //create horizontal direction based on hand rule
+
+       Vector3f center_screen_coord(0, 0, 0);
        center_screen_coord = look_from + look_at; //create pixel at center of "screen"
+
        verticle_dist_from_center = tan(FOVY/2);
+
        horizontal_dist_from_center = verticle_dist_from_center * aspect_ratio;
+
+       Eigen::Vector3f test = center_screen_coord + (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
+
        UL = center_screen_coord + (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
        UR = center_screen_coord + (verticle_dist_from_center * up) + (horizontal_dist_from_center * right);
        LL = center_screen_coord - (verticle_dist_from_center * up) - (horizontal_dist_from_center * right);
@@ -192,6 +211,7 @@ Ray GenerateRay(Camera cam, int pix_i, int pix_j){
     float u;
     float v; 
     Eigen::Vector3f P;
+
 
     u = (cam.half_pixel_offset + pix_i*cam.pixel_length)/cam.vert_length; 
     v = (cam.half_pixel_offset + pix_j*cam.pixel_length)/cam.hor_length; 
@@ -387,9 +407,14 @@ bool sphereIntersection(Sphere sphere, Ray ray){
     float discriminant, s0, s1;
 
     float a = dir.dot(dir);
+    //printf("\n%s,%f", "a:", a);
     float b = 2*(p0 - center).dot(dir);
+    //printf("\n%s,%f", "b:", b);
     float c = ((p0 - center).dot(p0 - center)) - pow(sphere.radius,2);
+    //printf("%s,%f", "a:", a);
+
     discriminant = (b*b) - (4*a*c);
+
     if(discriminant < 0){
         return false; 
     }
@@ -398,9 +423,10 @@ bool sphereIntersection(Sphere sphere, Ray ray){
         s0 = (-b - sqrt_dist) / (2*a);
         s1 = (-b + sqrt_dist) / (2*a);
     }
-    if(s1<0)
-        return false;
+   // if(s1<0)
+     //   return false;
     return true;
+    
     
 }
 
@@ -472,6 +498,7 @@ Color** render(Camera camera, int height, int width) {
     for (int i= 0; i<width; i++) {
         for (int j = 0; j<height; j++) {
             Ray ray = GenerateRay(camera, i, j);
+           // printf("%s,%f,%f,%f","ray with dir:", ray.dir[0],ray.dir[1],ray.dir[2]);
             Color new_color = Trace(ray, depth);
             buffer[i][j] = new_color; 
           //  printf("%s,%d,%d", "pixel:",i, j);
@@ -537,11 +564,11 @@ int main(int argc, char* argv[]){
 
      parseScene(argv[1]);
 
+     
      /*
-
     //setting params to specific things just to test
-    height = 10;
-    width = 10;
+    height = 2;
+    width = 2;
     Eigen::Vector3f eye = Eigen::Vector3f(0,3,0);
     Eigen::Vector3f view_dir = Eigen::Vector3f(1,0,0);
     Eigen::Vector3f up_dir = Eigen::Vector3f(0,1,0);
@@ -572,10 +599,12 @@ int main(int argc, char* argv[]){
     printf("\nLL: %f, %f, %f", cam.LL(0), cam.LL(1), cam.LL(2));
     printf("\nLR: %f, %f, %f", cam.LR(0), cam.LR(1), cam.LR(2));
     printf("\n");
-
-    parseScene(argv[1]);
     */
+   
 
+    //parseScene(argv[1]);
+    
+    
     Color** testbuffer = render(myCamera, height, width);
     outputFrame(testbuffer);
     
