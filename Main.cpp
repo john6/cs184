@@ -435,7 +435,6 @@ Color Trace(Ray ray, int depth) {
   // }
         for(int i=0; i<numSpheres; i++){
             if((sphereIntersection(AllSpheres[i], ray))){
-               // printf("do i detect an intersection?");
                 intersection = true;
                break;
            }
@@ -445,11 +444,13 @@ Color Trace(Ray ray, int depth) {
         return black_pix;
     }
     
+    /*
         for (int i=0; i<numLights; i++) {
            // lights[i].generateLightRay(in.local, &lray, &lcolor);
             Light MyLight = AllLights[i]; 
             // Check if the light is blocked or not
            // if (!primitive->intersectP(lray))
+                printf("getting here...");
                 Eigen::Vector3f temp;
                 Eigen::Vector3f surface_Normal; 
                 Eigen::Vector3f viewVector(0, 0, 1.0);
@@ -459,7 +460,6 @@ Color Trace(Ray ray, int depth) {
                 temp = ambient + diffuse + specular;
                 returnColor.rgb_vec = returnColor.rgb_vec.cross(temp); 
         }
-        /*
         // Handle mirror reflection
         if (brdf.kr > 0) {
             reflectRay = createReflectRay(in.local, ray);
@@ -470,9 +470,9 @@ Color Trace(Ray ray, int depth) {
         } 
         }
         */
-        returnColor.reset(); 
-        return returnColor; 
-       // return Color(1, 0, 0);
+        //returnColor.reset(); 
+        //return returnColor; 
+        return Color(1, 0, 0);
 }
 
 
