@@ -48,10 +48,11 @@ public:
 class Light{
 public:
     int type; 
-    Color LightRGB; 
-    Eigen::Vector3f LightVector; 
-    Light(int _type, Eigen::Vector3f _LightVector, Color _LightRGB){
-        LightVector = _LightVector;
+    Vector3f LightRGB; 
+    Vector3f LightRay; 
+    Vector3f LightCord;
+    Light(int _type, Vector3f _LightCord, Vector3f _LightRGB){
+        LightCord = _LightCord;
         LightRGB = _LightRGB;
     };
     Light(){}
@@ -102,6 +103,8 @@ Sphere AllSpheres[100]; int numSpheres;
 Tri AllTri[100]; int numTri;
 Vector3f vertices[100]; int numVerts;
 #define PI 3.14159265  
+Vector3f intersect_point;
+Vector3f surface_normal;
 
 //****************************************************
 // Ray
@@ -208,33 +211,35 @@ Ray GenerateRay(Camera cam, int pix_i, int pix_j){
 //****************************************************
 // Shading Terms
 //****************************************************
-Eigen::Vector3f ambientTerm(Color color, Light myLight){
+Vector3f ambientTerm(Color color, Light myLight){
     Eigen::Vector3f ambient = Eigen::Vector3f(color.r, color.g, color.b);
-    ambient = ambient.cross(myLight.LightRGB.rgb_vec);
+    ambient = ambient.cross(myLight.LightRGB);
     return ambient;
 }
 
-Eigen::Vector3f diffuseTerm(Color color, Light myLight, Eigen::Vector3f surf_norm){
+Vector3f diffuseTerm(Color color, Light myLight, Vector3f surf_norm){
     float d;
-    d = myLight.LightVector.dot(surf_norm);
-    Eigen::Vector3f d_color(color.r, color.g, color.b);
-    //take the max of kd an0
+    d = myLight.LightRay.dot(surf_norm);
+    Vector3f d_color = color.rgb_vec;
     d = fmax(d, 0);
-    d_color = d * d_color;
-    //multiply Kd by the intesity
-    d_color = d_color.cross(myLight.LightRGB.rgb_vec);
-
-     return d_color; 
+    d_color = d * d_color; 
+    d_color[0] = d_color[0] * myLight.LightRGB[0];
+    d_color[1] = d_color[1] * myLight.LightRGB[1];
+    d_color[2] = d_color[2] * myLight.LightRGB[2];
+    return d_color; 
 }
 
-Eigen::Vector3f specularTerm(Color color, Eigen::Vector3f surf_normal, Light myLight, Eigen::Vector3f viewVector){
-    Eigen::Vector3f r_vec = (2*(myLight.LightVector.dot(surf_normal))*surf_normal) - myLight.LightVector;
+Vector3f specularTerm(Color color, Vector3f surf_normal, Light myLight, Vector3f viewVector){
+    Vector3f r_vec = (2*(myLight.LightRay.dot(surf_normal))*surf_normal) - myLight.LightRay;
     r_vec.normalize();
-    Eigen::Vector3f s_color(color.r, color.g, color.b);
+    Vector3f s_color = color.rgb_vec;
     float r_dotV = r_vec.dot(viewVector);
     s_color = s_color* pow(fmax(r_dotV, 0), sp_v);
-    s_color = s_color.cross(myLight.LightRGB.rgb_vec);
-   return s_color; 
+    s_color[0] = s_color[0] * myLight.LightRGB[0];
+    s_color[1] = s_color[1] * myLight.LightRGB[1];
+    s_color[2] = s_color[2] * myLight.LightRGB[2];
+    return s_color; 
+   // return Vector3f(0, 1, 1);
 }
 
 
@@ -324,16 +329,17 @@ bool parseLine(string line){
     }else if (operand.compare("directional") == 0){
         readvals(ss, 6, values);
         Light new_DirLight(DIR, Vector3f(values[0], values[1], values[2]), 
-                                Color(values[3], values[4], values[5]));
+                                Vector3f(values[3], values[4], values[5]));
         AllLights[numLights] = new_DirLight;
         numLights++;
 
     }else if (operand.compare("point") == 0){
         readvals(ss, 6, values);
         Light new_pointLight(POINT, Vector3f(values[0], values[1], values[2]), 
-                                    Color(values[3], values[4], values[5]));
+                                    Vector3f(values[3], values[4], values[5]));
         AllLights[numLights] = new_pointLight;
         numLights++;
+
 
     }else if (operand.compare("attenuation") == 0){
         readvals(ss, 3, values);
@@ -411,13 +417,33 @@ bool sphereIntersection(Sphere sphere, Ray ray){
         return false;
     }
     if(s0<0){
-        t = s1; 
+        intersect_point = p0 + (dir-p0)*s1; 
+        surface_normal = (intersect_point - sphere.pos)/sphere.radius;
         return true; 
     }
-    t = s0; 
+    intersect_point = p0 + (dir-p0)*s0; 
+    surface_normal = (intersect_point - sphere.pos)/sphere.radius;
     return true;
     
     
+}
+
+bool triIntersection(Tri tri, Ray ray){
+    Vector3f p0 = tri.v1;
+    Vector3f p1 = tri.v2;
+    Vector3f p2 = tri.v3; 
+    Vector3f n = (p1 -p0).cross(p2 - p0);
+    Vector3f o = ray.start;
+    Vector3f d = ray.dir; 
+    float t = ((o-p0).dot(n))/(d.dot(n));
+    Vector3f x = o + t*d;
+    float case1 = ((p1 -p0).cross(x-p0)).dot(n);
+    float case2 = ((p2-p1).cross(x-p1)).dot(n);
+    float case3 = ((p0 - p2).cross(x-p2)).dot(n);
+    if(case1 >= 0 and case2 >= 0 and case3 >= 0){
+        return true; 
+    }
+    return false; 
 }
 
 
@@ -426,10 +452,10 @@ bool sphereIntersection(Sphere sphere, Ray ray){
 // The Trace Function 
 //****************************************************
 
-Color Trace(Ray ray, int depth) {
+Color Trace(Ray ray, int depth, Camera cam) {
    
    bool intersection = false; 
-   Color returnColor;
+   Color returnColor = black_pix;
  //   if (depth > threshhold) {
    //     return black_pix;
   // }
@@ -439,27 +465,50 @@ Color Trace(Ray ray, int depth) {
                break;
            }
        }
+       /*
+
+       for(int i=0; i<numTri; i++){
+            if(triIntersection(AllTri[i], ray)){
+                intersection = true;
+                return Color(1, 0, 0);
+                break; 
+            }
+       }
+       */
     if (!intersection) {
         // No intersection
         return black_pix;
     }
     
-    /*
+
+    
         for (int i=0; i<numLights; i++) {
-           // lights[i].generateLightRay(in.local, &lray, &lcolor);
-            Light MyLight = AllLights[i]; 
+            Light light = AllLights[i];
+            if(light.type == DIR){
+                light.LightRay = -1*(light.LightCord);
+                light.LightRay.normalize();
+                
+            }
+            else{
+              light.LightRay = light.LightCord- intersect_point;
+              light.LightRay.normalize();
+             // cout<<light.LightRay;
+            }
+
             // Check if the light is blocked or not
            // if (!primitive->intersectP(lray))
-                printf("getting here...");
-                Eigen::Vector3f temp;
-                Eigen::Vector3f surface_Normal; 
-                Eigen::Vector3f viewVector(0, 0, 1.0);
-                Eigen::Vector3f ambient = ambientTerm(ambientColor, MyLight);
-                Eigen::Vector3f diffuse = diffuseTerm(diffuseColor, MyLight, surface_Normal);
-                Eigen::Vector3f specular = specularTerm(specularColor, surface_Normal, MyLight, viewVector);
-                temp = ambient + diffuse + specular;
-                returnColor.rgb_vec = returnColor.rgb_vec.cross(temp); 
+                
+                Vector3f viewVector = cam.look_from - intersect_point;
+                viewVector.normalize();
+                Vector3f ambient = ambientTerm(ambientColor, light);
+                Vector3f diffuse = diffuseTerm(diffuseColor, light, surface_normal);
+                Vector3f specular = specularTerm(specularColor, surface_normal, light, viewVector);
+                returnColor.rgb_vec =  ambient + diffuse + specular; 
         }
+
+
+
+        /*
         // Handle mirror reflection
         if (brdf.kr > 0) {
             reflectRay = createReflectRay(in.local, ray);
@@ -470,9 +519,9 @@ Color Trace(Ray ray, int depth) {
         } 
         }
         */
-        //returnColor.reset(); 
-        //return returnColor; 
-        return Color(1, 0, 0);
+        returnColor.reset(); 
+        return returnColor; 
+       // return Color(1, 0, 0);
 }
 
 
@@ -488,7 +537,7 @@ Color** render(Camera camera, int height, int width) {
     for (int i= 0; i<width; i++) {
         for (int j = 0; j<height; j++) {
             Ray ray = GenerateRay(camera, i, j);
-            Color new_color = Trace(ray, depth);
+            Color new_color = Trace(ray, depth, camera);
             buffer[i][j] = new_color; 
            // buffer[i][j] = Color(i/(float)height, j/(float)width, 0);
         }
@@ -546,50 +595,6 @@ int outputFrame(Color** buffer){
 
 int main(int argc, char* argv[]){
 
-
-
-
-    
-
-     
-     /*
-    //setting params to specific things just to test
-    height = 2;
-    width = 2;
-    Eigen::Vector3f eye = Eigen::Vector3f(0,3,0);
-    Eigen::Vector3f view_dir = Eigen::Vector3f(1,0,0);
-    Eigen::Vector3f up_dir = Eigen::Vector3f(0,1,0);
-    float fovY = 1.57079632679; //  pi/2
-
-     // set up camera
-    Camera cam = Camera(eye, view_dir, up_dir, fovY);
-
-    //printf("\n : %f", );
-    float testing_tan = tan((1.57079632679/2));
-    printf("\ntesting_tan: %f", testing_tan);
-    printf("\n aspect_ratio: %f", cam.aspect_ratio);
-    printf("\n verticle_dist_from_center: %f", cam.verticle_dist_from_center);
-    printf("\n vert_length: %f", cam.vert_length);
-    printf("\n horizontal_dist_from_center: %f", cam.horizontal_dist_from_center);
-    printf("\n hor_length: %f", cam.hor_length);
-    printf("\n pixel_length: %f", cam.pixel_length);
-    printf("\n half_pixel_offset: %f", cam.half_pixel_offset);
-    printf("\n FOVY: %f", cam.FOVY);
-    printf("\n look_from: %f, %f, %f", cam.look_from(0), cam.look_from(1), cam.look_from(2));
-    printf("\n look_at: %f, %f, %f", cam.look_at(0), cam.look_at(1), cam.look_at(2));
-    printf("\n up: %f, %f, %f", cam.up(0), cam.up(1), cam.up(2));
-    printf("\n right: %f, %f, %f", cam.right(0), cam.right(1), cam.right(2));
-    printf("\n center_screen_coord: %f, %f, %f", cam.center_screen_coord(0), cam.center_screen_coord(1), cam.center_screen_coord(2));
-    //printf("\n : %f", );
-    printf("\nUL: %f, %f, %f", cam.UL(0), cam.UL(1), cam.UL(2));
-    printf("\nUR: %f, %f, %f", cam.UR(0), cam.UR(1), cam.UR(2));
-    printf("\nLL: %f, %f, %f", cam.LL(0), cam.LL(1), cam.LL(2));
-    printf("\nLR: %f, %f, %f", cam.LR(0), cam.LR(1), cam.LR(2));
-    printf("\n");
-    */
-   
-
-    //parseScene(argv[1]);
     
      parseScene(argv[1]);
     Color** testbuffer = render(myCamera, height, width);

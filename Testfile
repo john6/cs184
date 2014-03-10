@@ -1,10 +1,20 @@
 size 240 240
 
-output sundaybitches
+output diffuse
 camera -8 -8 4 0 0 0 0 1 0 30
 sphere 0 0 0 2
-ambient .1 .1 .1
-directional 0 0 1 .5 .5 .5 
-point 4 0 4 .5 .5 .5
-diffuse 1 0 0 
-specular 1 0 0
+#ambient 1 1 0
+#directional 200 200 200 .6 .6 .6 
+point 200 200 200 .6 .6 .6
+diffuse 1 1 0  
+#specular .8 .8 .8
+#shininess 16
+
+
+#vertex -1 -1 0 
+#vertex +1 -1 0
+#vertex +1 +1 0
+#vertex -1 +1 0
+
+#tri 0 1 2
+#tri 0 2 3
