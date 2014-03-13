@@ -1,18 +1,22 @@
-size 240 240
+size 400 400 
 
 output diffuseOnly
 #camera -8 -8 4 0 0 0 0 1 0 30
 
 
+sphere .5 .5 4 3
+#sphere -1 -1 4 1
+#sphere 2 2 4 1
 
-sphere .5 .5 2 1.5
 
 
-#ambient 1 1 0
-#directional 200 200 200 .6 .6 .6 
 
-point 200 200 200 .6 .6 .6
+
+directional .5 .5 -.5 .6 .6 .6 
+
+point .5 .5 -.5 .6 .6 .6
 diffuse 1 0 0  
+#ambient 0 0 .1
 
 #specular .8 .8 .8
 #shininess 16

@@ -169,7 +169,6 @@ Ray GenerateRay(Camera cam, int pix_i, int pix_j){
     float v = ((float) pix_i/ (float) width) + 1/(width*2);
     Vector3f P;
     P = (u*(v*LL + (1-v)*UL)) + ((1-u)*(v*LR + (1-v)*UR));
-    
     return Ray(eye, P-eye, 20, 30);
 
 }
@@ -180,8 +179,10 @@ Ray GenerateRay(Camera cam, int pix_i, int pix_j){
 // Shading Terms
 //****************************************************
 Vector3f ambientTerm(Color color, Light myLight){
-    Eigen::Vector3f ambient = Eigen::Vector3f(color.r, color.g, color.b);
-    ambient = ambient.cross(myLight.LightRGB);
+    Eigen::Vector3f ambient;
+    ambient[0] = color.r * myLight.LightRGB[0];
+    ambient[1] = color.g * myLight.LightRGB[1];
+    ambient[2] = color.b * myLight.LightRGB[2];
     return ambient;
 }
 
@@ -357,10 +358,9 @@ bool sphereIntersection(Sphere sphere, Ray ray){
     float a = dir.dot(dir);
     float b = 2*dir.dot(p0-center);
     float c = center.dot(center) + (p0.dot(p0)) + (-2*center.dot(p0)) - (sphere.radius*sphere.radius);
-    //printf("\n%s%f%s%f%s%f", "a: ", a, "b: ", b, "c", b);
 
     discriminant = (b*b)-(4*a*c);
-   //printf("\n%s%f", "Dis: ", discriminant);
+
     if(discriminant < 0){
         return false; 
     }
@@ -383,12 +383,10 @@ bool sphereIntersection(Sphere sphere, Ray ray){
     }
     if(s0<0){
         intersect_point = p0 + (dir-p0)*s1; 
-       // intersect_point.normalize();
         surface_normal = (intersect_point - center)/sphere.radius;
         return true; 
     }
     intersect_point = p0 + (dir-p0)*s0; 
-    //intersect_point.normalize();
     surface_normal = (intersect_point - center)/sphere.radius;
     return true;
     
@@ -482,7 +480,7 @@ Color Trace(Ray ray, int depth, Camera cam) {
                 
             }
             else{
-              light.LightRay = light.LightCord- intersect_point;
+              light.LightRay = light.LightCord - intersect_point;
               light.LightRay.normalize();
             }
 
@@ -491,11 +489,11 @@ Color Trace(Ray ray, int depth, Camera cam) {
                 
              //   Vector3f viewVector = cam.look_from - intersect_point;
              //   viewVector.normalize();
-             //   Vector3f ambient = ambientTerm(ambientColor, light);
+               Vector3f ambient = ambientTerm(ambientColor, light);
                 Vector3f diffuse = diffuseTerm(diffuseColor, light, surface_normal);
              //   Vector3f specular = specularTerm(specularColor, surface_normal, light, viewVector);
                // returnColor.rgb_vec =  ambient + diffuse + specular; 
-                returnColor.rgb_vec = diffuse;
+                returnColor.rgb_vec = ambient + diffuse;
         }
         /*
         // Handle mirror reflection
@@ -509,8 +507,8 @@ Color Trace(Ray ray, int depth, Camera cam) {
         }
         */
         returnColor.reset(); 
-       //return returnColor; 
-        return Color(1, 0, 0);
+       return returnColor; 
+       // return Color(1, 0, 0);
 }
 
 
@@ -537,7 +535,7 @@ Color** render(Camera camera, int height, int width) {
 //****************************************************
 // CImage output
 //****************************************************
-CImg<float> image(240, 240,1,3,0); 
+CImg<float> image(400, 400,1,3,0); 
 void outputImage(Color** buffer){
     for (int j=height-1; j>=0; j--) {
         for (int i=0; i<width; i++) {
