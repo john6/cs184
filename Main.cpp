@@ -155,16 +155,9 @@ public:
 
 
 //****************************************************
-// Make the Global Camera
-//****************************************************
-
-Camera myCamera;
-
-
-//****************************************************
 // GenerateRay
 //****************************************************
-Ray GenerateRay(Camera cam, int pix_i, int pix_j){
+Ray GenerateRay(int pix_i, int pix_j){
     float u = (1- ((float)pix_j/ (float)height)) - 1/(width*2);
     float v = ((float) pix_i/ (float) width) + 1/(width*2);
     Vector3f P;
@@ -247,15 +240,6 @@ bool parseLine(string line){
     }else if(operand.compare("output") == 0){
         ss>>out_file; 
 
-    //CAMERA
-    }else if (operand.compare("camera") == 0){
-         readvals(ss, 10, values);
-         Camera temp(Vector3f(values[0], values[1], values[2]), 
-                     Vector3f(values[3], values[4], values[5]), 
-                     Vector3f(values[6], values[7], values[8]),
-                     values[9]);
-         myCamera = temp;
-
     //GEOMETRY
     }else if (operand.compare("sphere") == 0){
         readvals(ss, 4, values);
@@ -272,9 +256,6 @@ bool parseLine(string line){
         vertices[numVerts] = newVertex;
         numVerts++; 
 
-    }else if (operand.compare("vertexnormal") == 0){
-        readvals(ss, 6, values);
-
     }else if (operand.compare("tri") == 0){
         readvals(ss, 3 ,values);
         Tri newTri(vertices[(int)values[0]], vertices[(int)values[1]], vertices[(int)values[2]]);
@@ -288,13 +269,10 @@ bool parseLine(string line){
         readvals(ss, 3, values);
     }else if (operand.compare("scale") == 0){
         readvals(ss, 3, values);
-    }else if (operand.compare("pushTransform") == 0){
-        //DO SOME KIND OF TRANSFORMATION
-    }else if (operand.compare("popTransform") == 0){
-        //DO SOMETHING
+    }
 
     //LIGHTS
-    }else if (operand.compare("directional") == 0){
+    else if (operand.compare("directional") == 0){
         readvals(ss, 6, values);
         Light new_DirLight(DIR, Vector3f(values[0], values[1], values[2]), 
                                 Vector3f(values[3], values[4], values[5]));
@@ -397,7 +375,6 @@ bool triIntersection(Tri tri, Ray ray){
     Vector3f p1 = tri.v2;
     Vector3f p2 = tri.v3; 
     Vector3f n = (p1 -p0).cross(p2 - p0);
-    n.normalize();
     Vector3f o = ray.start;
     float NdotRaydir = n.dot(ray.dir);
     if(NdotRaydir == 0){
@@ -405,10 +382,8 @@ bool triIntersection(Tri tri, Ray ray){
     }
     float d = n.dot(p0);
     float t = -(n.dot(o) + d) / NdotRaydir;
-    if(t<0){
-        return false;
-    }
-    Vector3f P = o + t*ray.dir;
+ 
+    Vector3f P = o + (t*ray.dir);
 
     //INSIDE OUTSIDE TESTS
     Vector3f C;
@@ -428,12 +403,14 @@ bool triIntersection(Tri tri, Ray ray){
     }
     //edge2
     Vector3f edge2 = p0 -p2;
-    Vector3f Vp2 = P - p1;
+    Vector3f Vp2 = P - p2;
     C = edge2.cross(Vp2);
     if(n.dot(C) < 0){
         return false;
     }
-    printf("any true?");
+    surface_normal = n;
+    surface_normal.normalize(); 
+    intersect_point = P; 
     return true; 
 }
 
@@ -443,7 +420,7 @@ bool triIntersection(Tri tri, Ray ray){
 // The Trace Function 
 //****************************************************
 
-Color Trace(Ray ray, int depth, Camera cam) {
+Color Trace(Ray ray, int depth) {
    
    bool intersection = false; 
    Color returnColor = black_pix;
@@ -458,42 +435,51 @@ Color Trace(Ray ray, int depth, Camera cam) {
            }
        }
     
-    /*   
+     if(!intersection){
        for(int i=0; i<numTri; i++){
             if(triIntersection(AllTri[i], ray)){
                 intersection = true;
-                return Color(1, 0, 0);
                 break; 
             }
        }
-       */
+   }
+    
     
     if (!intersection) {
         // No intersection
         return black_pix;
     }    
+
         for (int i=0; i<numLights; i++) {
             Light light = AllLights[i];
+            Vector3f ShadowRay = ligh.LightCord - intersect_point;
+            
+            /*
+            if(sphereIntersection(AllSpheres[i], ShadowRay) or triIntersection(AllTri[i])){
+                //make shadow!!
+                //make sure not intersecting with self though...
+            }
+            */
+
             if(light.type == DIR){
                 light.LightRay = -1*(light.LightCord);
                 light.LightRay.normalize();
                 
             }
             else{
-              light.LightRay = light.LightCord - intersect_point;
+              light.LightRay = ShadowRay;
               light.LightRay.normalize();
             }
 
             // Check if the light is blocked or not
            // if (!primitive->intersectP(lray))
                 
-             //   Vector3f viewVector = cam.look_from - intersect_point;
-             //   viewVector.normalize();
+               Vector3f viewVector = intersect_point - eye;
+               viewVector.normalize();
                Vector3f ambient = ambientTerm(ambientColor, light);
-                Vector3f diffuse = diffuseTerm(diffuseColor, light, surface_normal);
-             //   Vector3f specular = specularTerm(specularColor, surface_normal, light, viewVector);
-               // returnColor.rgb_vec =  ambient + diffuse + specular; 
-                returnColor.rgb_vec = ambient + diffuse;
+               Vector3f diffuse = diffuseTerm(diffuseColor, light, surface_normal);
+               Vector3f specular = specularTerm(specularColor, surface_normal, light, viewVector);
+               returnColor.rgb_vec = ambient + diffuse + specular; 
         }
         /*
         // Handle mirror reflection
@@ -508,14 +494,13 @@ Color Trace(Ray ray, int depth, Camera cam) {
         */
         returnColor.reset(); 
        return returnColor; 
-       // return Color(1, 0, 0);
 }
 
 
 //****************************************************
 // The Rendering Loop
 //****************************************************
-Color** render(Camera camera, int height, int width) {
+Color** render(int height, int width) {
     //insert values into ColorBuffer array
     Color** buffer = new Color*[width];
     for(int i=0; i<width; ++i)
@@ -523,8 +508,8 @@ Color** render(Camera camera, int height, int width) {
 
     for (int i= 0; i<width; i++) {
         for (int j = 0; j<height; j++) {
-            Ray ray = GenerateRay(camera, i, j);
-            Color new_color = Trace(ray, depth, camera);
+            Ray ray = GenerateRay(i, j);
+            Color new_color = Trace(ray, depth);
             buffer[i][j] = new_color; 
         }
     }
@@ -555,7 +540,7 @@ int main(int argc, char* argv[]){
 
     
     parseScene(argv[1]);
-    Color** testbuffer = render(myCamera, height, width);
+    Color** testbuffer = render(height, width);
     outputImage(testbuffer);
     outputImage(testbuffer);
     image.display(); 
