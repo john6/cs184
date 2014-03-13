@@ -106,11 +106,11 @@ Vector3f vertices[100]; int numVerts;
 #define PI 3.14159265  
 Vector3f intersect_point = Vector3f(0,0,0);
 Vector3f surface_normal = Vector3f(0,0,0);
-Vector3f eye = Vector3f(0,0,0);
-Vector3f UL = Vector3f(1,0,0);
-Vector3f UR = Vector3f(0,0,0);
-Vector3f LR = Vector3f(0,1,0);
-Vector3f LL = Vector3f(1,1,0);
+Vector3f eye = Vector3f(.5,.5,-.5);
+Vector3f UL = Vector3f(0,1,0);
+Vector3f UR = Vector3f(1,1,0);
+Vector3f LR = Vector3f(1,0,0);
+Vector3f LL = Vector3f(0,0,0);
 
 
 //****************************************************
@@ -165,22 +165,11 @@ Camera myCamera;
 // GenerateRay
 //****************************************************
 Ray GenerateRay(Camera cam, int pix_i, int pix_j){
-/*
-    Vector3f w = cam.look_from - cam.look_at;
-    w.normalize();
-    Vector3f u =  cam.up.cross(w);
-    u.normalize();
-    Vector3f v = w.cross(u);
-
-    float x_range = tan(cam.FOVY / 2.0) * width / height;
-    float b = tan(cam.FOVY / 2.0) * (height/2.0 - pix_i) / (height / 2.0);
-    float a =  x_range * (pix_j - width/2.0) / (width / 2.0);
-    return Ray(cam.look_from, u*a + v*b -w, 20, 30);
-    */
-    float u = 1 - pix_j/height;
-    float v = pix_i/width;
+    float u = (1- ((float)pix_j/ (float)height)) - 1/(width*2);
+    float v = ((float) pix_i/ (float) width) + 1/(width*2);
     Vector3f P;
     P = (u*(v*LL + (1-v)*UL)) + ((1-u)*(v*LR + (1-v)*UR));
+    
     return Ray(eye, P-eye, 20, 30);
 
 }
@@ -290,13 +279,9 @@ bool parseLine(string line){
         Tri newTri(vertices[(int)values[0]], vertices[(int)values[1]], vertices[(int)values[2]]);
         AllTri[numTri] = newTri;
         numTri++;
-
-    }else if (operand.compare("UL") == 0){
-        readvals(ss, 3, values);
-      //  Vector3f temp(values[0], values[1], values[2]);
-
+    }
      //TRANSFORMATIONS 
-    }else if (operand.compare("translate") == 0){
+    else if (operand.compare("translate") == 0){
         readvals(ss, 3, values);
     }else if (operand.compare("rotate") == 0){
         readvals(ss, 3, values);
@@ -370,9 +355,12 @@ bool sphereIntersection(Sphere sphere, Ray ray){
     float discriminant, s0, s1, t;
     Vector3f center = sphere.pos;
     float a = dir.dot(dir);
-    float b = 2*p0.dot(dir);
-    float c = p0.dot(p0) - (sphere.radius*sphere.radius);
+    float b = 2*dir.dot(p0-center);
+    float c = center.dot(center) + (p0.dot(p0)) + (-2*center.dot(p0)) - (sphere.radius*sphere.radius);
+    //printf("\n%s%f%s%f%s%f", "a: ", a, "b: ", b, "c", b);
+
     discriminant = (b*b)-(4*a*c);
+   //printf("\n%s%f", "Dis: ", discriminant);
     if(discriminant < 0){
         return false; 
     }
@@ -521,7 +509,7 @@ Color Trace(Ray ray, int depth, Camera cam) {
         }
         */
         returnColor.reset(); 
-        return returnColor; 
+       //return returnColor; 
         return Color(1, 0, 0);
 }
 
@@ -549,7 +537,7 @@ Color** render(Camera camera, int height, int width) {
 //****************************************************
 // CImage output
 //****************************************************
-CImg<float> image(400, 400,1,3,0); 
+CImg<float> image(240, 240,1,3,0); 
 void outputImage(Color** buffer){
     for (int j=height-1; j>=0; j--) {
         for (int i=0; i<width; i++) {
@@ -570,6 +558,7 @@ int main(int argc, char* argv[]){
     
     parseScene(argv[1]);
     Color** testbuffer = render(myCamera, height, width);
+    outputImage(testbuffer);
     outputImage(testbuffer);
     image.display(); 
     
