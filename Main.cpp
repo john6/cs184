@@ -18,9 +18,6 @@ using namespace std;
 using namespace Eigen;
 using namespace cimg_library;
 
-
-
-
 //****************************************************
 // Color
 //****************************************************
@@ -109,6 +106,12 @@ Vector3f vertices[100]; int numVerts;
 #define PI 3.14159265  
 Vector3f intersect_point = Vector3f(0,0,0);
 Vector3f surface_normal = Vector3f(0,0,0);
+Vector3f eye = Vector3f(0,0,0);
+Vector3f UL = Vector3f(1,0,0);
+Vector3f UR = Vector3f(0,0,0);
+Vector3f LR = Vector3f(0,1,0);
+Vector3f LL = Vector3f(1,1,0);
+
 
 //****************************************************
 // Ray
@@ -135,7 +138,7 @@ class Camera{
 public:
     float FOVY;
 
-    Eigen::Vector3f look_from, up, look_at;
+    Eigen::Vector3f look_from, up, look_at; 
 
 
     Camera(){};
@@ -162,7 +165,7 @@ Camera myCamera;
 // GenerateRay
 //****************************************************
 Ray GenerateRay(Camera cam, int pix_i, int pix_j){
-
+/*
     Vector3f w = cam.look_from - cam.look_at;
     w.normalize();
     Vector3f u =  cam.up.cross(w);
@@ -173,6 +176,12 @@ Ray GenerateRay(Camera cam, int pix_i, int pix_j){
     float b = tan(cam.FOVY / 2.0) * (height/2.0 - pix_i) / (height / 2.0);
     float a =  x_range * (pix_j - width/2.0) / (width / 2.0);
     return Ray(cam.look_from, u*a + v*b -w, 20, 30);
+    */
+    float u = 1 - pix_j/height;
+    float v = pix_i/width;
+    Vector3f P;
+    P = (u*(v*LL + (1-v)*UL)) + ((1-u)*(v*LR + (1-v)*UR));
+    return Ray(eye, P-eye, 20, 30);
 
 }
 
@@ -282,8 +291,9 @@ bool parseLine(string line){
         AllTri[numTri] = newTri;
         numTri++;
 
-    }else if (operand.compare("trinormal") == 0){
+    }else if (operand.compare("UL") == 0){
         readvals(ss, 3, values);
+      //  Vector3f temp(values[0], values[1], values[2]);
 
      //TRANSFORMATIONS 
     }else if (operand.compare("translate") == 0){
@@ -385,10 +395,12 @@ bool sphereIntersection(Sphere sphere, Ray ray){
     }
     if(s0<0){
         intersect_point = p0 + (dir-p0)*s1; 
+       // intersect_point.normalize();
         surface_normal = (intersect_point - center)/sphere.radius;
         return true; 
     }
     intersect_point = p0 + (dir-p0)*s0; 
+    //intersect_point.normalize();
     surface_normal = (intersect_point - center)/sphere.radius;
     return true;
     
@@ -510,6 +522,7 @@ Color Trace(Ray ray, int depth, Camera cam) {
         */
         returnColor.reset(); 
         return returnColor; 
+        return Color(1, 0, 0);
 }
 
 

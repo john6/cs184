@@ -1,12 +1,12 @@
-size 400 400
+size 10 10
 
 output diffuseOnly
-camera -8 -8 4 0 0 0 0 1 0 30
+#camera -8 -8 4 0 0 0 0 1 0 30
 
 
-sphere 0 0 0 2
-#sphere 1 1 1 .25
-#sphere 10 10 10 .25
+
+sphere 0 0 -2 .25
+
 
 #ambient 1 1 0
 #directional 200 200 200 .6 .6 .6 
