@@ -106,11 +106,11 @@ Vector3f vertices[100]; int numVerts;
 #define PI 3.14159265  
 Vector3f intersect_point = Vector3f(0,0,0);
 Vector3f surface_normal = Vector3f(0,0,0);
-Vector3f eye = Vector3f(.5,.5,-.5);
-Vector3f UL = Vector3f(0,1,0);
-Vector3f UR = Vector3f(1,1,0);
-Vector3f LR = Vector3f(1,0,0);
-Vector3f LL = Vector3f(0,0,0);
+Vector3f eye = Vector3f(0,0,0);
+Vector3f UL = Vector3f(-1,1,-1);
+Vector3f UR = Vector3f(1,1,-1);
+Vector3f LR = Vector3f(1,-1,-1);
+Vector3f LL = Vector3f(-1,-1,-1);
 
 
 //****************************************************
@@ -121,7 +121,7 @@ public:
     Vector3f dir;
     float t_min, t_max;
     Vector3f start;
-    Ray(Eigen::Vector3f _pos, Eigen::Vector3f _dir, float _t_min, float _t_max){
+    Ray(Vector3f _pos, Vector3f _dir, float _t_min, float _t_max){
         dir = _dir;
         t_min = _t_min;
         t_max = _t_max;
@@ -414,21 +414,9 @@ bool triIntersection(Tri tri, Ray ray){
     return true; 
 }
 
-
-
-//****************************************************
-// The Trace Function 
-//****************************************************
-
-Color Trace(Ray ray, int depth) {
-   
-   bool intersection = false; 
-   Color returnColor = black_pix;
- //   if (depth > threshhold) {
-   //     return black_pix;
-  // }
-   
-        for(int i=0; i<numSpheres; i++){
+bool checkIntersection(Ray ray){
+    bool intersection = false;
+      for(int i=0; i<numSpheres; i++){
             if((sphereIntersection(AllSpheres[i], ray))){
                 intersection = true;
                break;
@@ -443,7 +431,23 @@ Color Trace(Ray ray, int depth) {
             }
        }
    }
-    
+   return intersection;
+}
+
+
+
+//****************************************************
+// The Trace Function 
+//****************************************************
+
+Color Trace(Ray ray, int depth) {
+   
+ //  bool intersection = false; 
+   Color returnColor = black_pix;
+   bool intersection = checkIntersection(ray);
+ //   if (depth > threshhold) {
+   //     return black_pix;
+  // }
     
     if (!intersection) {
         // No intersection
@@ -452,14 +456,16 @@ Color Trace(Ray ray, int depth) {
 
         for (int i=0; i<numLights; i++) {
             Light light = AllLights[i];
-            Vector3f ShadowRay = ligh.LightCord - intersect_point;
+            Ray ShadowRay(light.LightCord, intersect_point, 0, 100);
+
             
-            /*
-            if(sphereIntersection(AllSpheres[i], ShadowRay) or triIntersection(AllTri[i])){
+          //  if(checkIntersection(ShadowRay)){
+              //  printf("shadow....");
+            //    return black_pix;
                 //make shadow!!
                 //make sure not intersecting with self though...
-            }
-            */
+           // }
+        
 
             if(light.type == DIR){
                 light.LightRay = -1*(light.LightCord);
@@ -467,12 +473,9 @@ Color Trace(Ray ray, int depth) {
                 
             }
             else{
-              light.LightRay = ShadowRay;
+              light.LightRay = light.LightCord - intersect_point;
               light.LightRay.normalize();
             }
-
-            // Check if the light is blocked or not
-           // if (!primitive->intersectP(lray))
                 
                Vector3f viewVector = intersect_point - eye;
                viewVector.normalize();
