@@ -1,9 +1,13 @@
 CC = g++
-flags = -IEigen
+flags = -I./Eigen -I/usr/X11/include
+Lflags = -L/usr/X11/lib
+libs = -lx11
 
+%.o:%.cpp
+	${CC} $(flags) ${flags} -c $< 
 
-scene.o: Main.cpp Main.h
-	${CC} ${flags} Main.cpp -o Main ${flags}
+main: Main.o 
+	${CC} ${flags} ${Lflags} ${libs} $@.o -o $@ 
 
 
 
