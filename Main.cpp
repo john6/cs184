@@ -468,6 +468,78 @@ Ray generateShadowRay(Light light, Vector3f intersect_point){
 }
 
 
+//****************************************************
+// The Transformation Function 
+//****************************************************
+
+bool transformation(Ray ray, Sphere sphere, float scaleX, float scaleY, float scaleZ){
+    Matrix4f m(4,4);
+    m(0,0) = scaleX;
+    m(0,1) = 0;
+    m(0,2) = 0;
+    m(0,3) = 0;
+    m(1,1) = scaleY;
+    m(1,0) = 0;
+    m(1,2) = 0;
+    m(1,3) = 0;
+    m(2,2) = scaleZ;
+    m(2,0) = 0;
+    m(2,1) = 0;
+    m(2,3) = 0;
+    m(3,3) = 1;
+    m(3,0) = 0;
+    m(3,1) = 0;
+    m(3,2) = 0;
+    Matrix4f invM = m.inverse();
+
+    Matrix4f rayDir(4,4);      //transform into homgenized matrix
+    rayDir(0,0) = ray.dir(0);
+    rayDir(1,1) = ray.dir(1);
+    rayDir(2,2) = ray.dir(2);
+    rayDir(3,3) = 0;     //when you homogenize a direction you pad it with zero rather than one
+
+    Matrix4f rayStart(4,4);
+    rayStart(0,0) = ray.start(0);
+    rayStart(1,1) = ray.start(1);
+    rayStart(2,2) = ray.start(2);
+    rayStart(3,3) = 1;
+
+    rayDir = invM * rayDir;     // by multiplying the ray direction and start vector into object space
+    rayStart = invM * rayStart; //transform the ray from object space to world space
+
+    ray.dir = Vector3f(rayDir(0,0), rayDir(1,1), rayDir(2,2));
+    ray.start = Vector3f(rayStart(0,0), rayStart(1,1), rayStart(2,2));
+
+    bool intersection = checkIntersection(ray);
+
+    Vector4f intersectPoint;
+    intersectPoint(0) = intersect_point(0);
+    intersectPoint(1) = intersect_point(1);
+    intersectPoint(2) = intersect_point(2);
+    intersectPoint(3) = 1;
+
+    Vector4f surfNormal;
+    surfNormal(0) = surface_normal(0);
+    surfNormal(1) = surface_normal(1);
+    surfNormal(2) = surface_normal(2);
+    surfNormal(3) = 0;
+                                                                    //first have to turn the intersect point and surf norm to 4 vectors from 3 vectors 
+    intersectPoint =  m * intersectPoint;                            //transform postion back to world space using M
+    surfNormal =  invM.transpose() * surfNormal;        //transform normal using the Trasnpose of the inverse of M
+                                    //need something called localGeo which holds both postion and normal
+    intersect_point(0) = intersectPoint(0);
+    intersect_point(1) = intersectPoint(1);
+    intersect_point(2) = intersectPoint(2);
+
+    surface_normal(0) = surfNormal(0);
+    surface_normal(1) = surfNormal(1);
+    surface_normal(2) = surfNormal(2);
+
+    return intersection;
+}
+
+
+
 
 //****************************************************
 // The Trace Function 
@@ -477,7 +549,8 @@ Color Trace(Ray ray, int depth) {
    
    bool intersection = false; 
    Color returnColor = black_pix;
-   intersection = checkIntersection(ray);
+   //intersection = checkIntersection(ray);
+   intersection = transformation(ray, AllSpheres[0], 2, 1, 1);
  //   if (depth > threshhold) {
    //     return black_pix;
   // }
@@ -569,7 +642,7 @@ int main(int argc, char* argv[]){
     outputImage(testbuffer);
     outputImage(testbuffer);
     image.normalize(0,255);
-    image.save("Triangle.ppm");
+    image.save("Transformation.ppm");
     image.display(); 
     
     return 0;
