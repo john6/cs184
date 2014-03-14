@@ -1,0 +1,13 @@
+size 400 400 
+
+sphere -.69 .75 -3.9 .21 .1 .1 0
+sphere .15 .70 -3.8 .4 .1 .1 0
+sphere 0 -.75 -4 .75 0 .1 .4
+
+directional -20 20 -10 .6 .6 .6 
+
+point 200 200 -75 .6 .6 .6
+diffuse 1 0 0  
+specular 1 1 1 
+
+shininess 14

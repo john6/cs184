@@ -96,7 +96,7 @@ public:
 //****************************************************
 // Global Variabels
 //****************************************************
-int height, width, depth = 5, threshhold;
+int height, width, depth = 0, threshhold = 3;
 Color ambientColor, specularColor, diffuseColor; 
 Color black_pix(0.0, 0.0, 0.0);
 float sp_v;
@@ -114,6 +114,7 @@ Vector3f surface_normal = Vector3f(0,0,0);
 Vector3f eye = Vector3f(0,0,0);
 float glob_t; 
 Vector3f currColor; 
+float kr = 0.0; //reflective compnenet
 
 
 Vector3f UL = Vector3f(-.5,.5,-1);
@@ -260,8 +261,6 @@ bool parseLine(string line){
         AllSpheres[numSpheres] = newSphere;
         numSpheres++;
 
-    }else if (operand.compare("maxverts") == 0){
-        ss>>maxvertsnorms;
     }else if (operand.compare("vertex") == 0){
         readvals(ss, 3, values);
         Vector3f newVertex(values[0], values[1], values[2]);
@@ -300,8 +299,6 @@ bool parseLine(string line){
         numLights++;
 
 
-    }else if (operand.compare("attenuation") == 0){
-        readvals(ss, 3, values);
     }
 
     //MATERIALS
@@ -315,6 +312,8 @@ bool parseLine(string line){
         specularColor= temp2;
     }else if (operand.compare("shininess") == 0){
         ss>>sp_v;
+    }else if (operand.compare("kr") == 0){  //Mirror reflection
+        ss>>kr; 
     }
     if (ss.fail())
         return false;
@@ -538,6 +537,12 @@ bool transformation(Ray ray, Sphere sphere, float scaleX, float scaleY, float sc
     return intersection;
 }
 
+Ray createReflectRay(Vector3f intersect_point, Ray ray, Vector3f surf_norm){
+    Vector3f V = ray.dir; 
+    Vector3f N = surf_norm;
+    Vector3f R = -V + 2*N*(V.dot(N));
+    return Ray((intersect_point + .01*R), (R - intersect_point), 1, 1);
+}
 
 
 
@@ -549,28 +554,26 @@ Color Trace(Ray ray, int depth) {
    
    bool intersection = false; 
    Color returnColor = black_pix;
-   //intersection = checkIntersection(ray);
-   intersection = transformation(ray, AllSpheres[0], 2, 1, 1);
- //   if (depth > threshhold) {
-   //     return black_pix;
-  // }
+   intersection = checkIntersection(ray);
+ // intersection = transformation(ray, AllSpheres[0], 2, 1, 1);
+   if (depth > threshhold) {
+        return black_pix;
+   }
     
     if (!intersection) {        // No intersection
         return black_pix;
     }    
 
+        ambientColor = Color(currColor[0], currColor[1], currColor[2]);
+        returnColor.rgb_vec = ambientColor.rgb_vec; 
+
     for (int i=0; i<numLights; i++) {   
         Light light = AllLights[i];
-
-        ambientColor = Color(currColor[0], currColor[1], currColor[2]);
-        Vector3f ambient = ambientColor.rgb_vec;
-        returnColor.rgb_vec += ambient;
         Ray ShadowRay = generateShadowRay(light, intersect_point);
         light.LightRay = ShadowRay.dir; 
 
 
-         if(checkIntersection(ShadowRay)){
-                returnColor.rgb_vec += ambientTerm(ambientColor, light);
+        if(checkIntersection(ShadowRay)){
                 break;
             }
                Vector3f viewVector = eye - intersect_point;
@@ -579,17 +582,15 @@ Color Trace(Ray ray, int depth) {
                Vector3f specular = specularTerm(specularColor, surface_normal, light, viewVector);
                returnColor.rgb_vec += diffuse + specular; 
         }
-        /*
+        
         // Handle mirror reflection
-        if (brdf.kr > 0) {
-            reflectRay = createReflectRay(in.local, ray);
-            
+        if (kr > 0) {
+            Ray reflectRay = createReflectRay(intersect_point, ray, surface_normal);
             // Make a recursive call to trace the reflected ray
-            trace(reflectRay, depth+1, &tempColor);
-            *color += brdf.kr * tempColor;
+            Color temp = Trace(reflectRay, depth+1);
+            returnColor.rgb_vec += temp.rgb_vec; 
         } 
-        }
-        */
+    
         returnColor.reset(); 
        return returnColor; 
 }
@@ -618,7 +619,7 @@ Color** render(int height, int width) {
 //****************************************************
 // CImage output
 //****************************************************
-CImg<float> image(400, 400,1,3,0); 
+CImg<float> image(1000, 1000,1,3,0); 
 void outputImage(Color** buffer){
     for (int j=height-1; j>=0; j--) {
         for (int i=0; i<width; i++) {
@@ -642,7 +643,7 @@ int main(int argc, char* argv[]){
     outputImage(testbuffer);
     outputImage(testbuffer);
     image.normalize(0,255);
-    image.save("Transformation.ppm");
+    image.save("Reflection.ppm");
     image.display(); 
     
     return 0;
