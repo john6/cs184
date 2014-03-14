@@ -66,10 +66,12 @@ public:
 class Sphere{
 public:
     Vector3f pos;
-    float radius; 
-    Sphere(Vector3f _pos, float _radius){
+    float radius;
+    Vector3f color; 
+    Sphere(Vector3f _pos, float _radius, Vector3f _RGB){
         pos = _pos;
         radius = _radius;
+        color = _RGB;
     }
     Sphere(){}
 
@@ -81,10 +83,12 @@ public:
 class Tri{
 public:
     Vector3f v1, v2, v3;
-    Tri(Vector3f _v1, Vector3f _v2, Vector3f _v3){
+    Vector3f color;
+    Tri(Vector3f _v1, Vector3f _v2, Vector3f _v3, Vector3f _RGB){
         v1 = _v1;
         v2 = _v2;
         v3 = _v3; 
+        color = _RGB;
     }
     Tri(){}
 };
@@ -109,6 +113,7 @@ Vector3f intersect_point = Vector3f(0,0,0);
 Vector3f surface_normal = Vector3f(0,0,0);
 Vector3f eye = Vector3f(0,0,0);
 float glob_t; 
+Vector3f currColor; 
 
 
 Vector3f UL = Vector3f(-.5,.5,-1);
@@ -248,9 +253,10 @@ bool parseLine(string line){
 
     //GEOMETRY
     }else if (operand.compare("sphere") == 0){
-        readvals(ss, 4, values);
+        readvals(ss, 7, values);
         Vector3f temp = Vector3f(values[0], values[1], values[2]);
-        Sphere newSphere(temp, values[3]);
+        Vector3f RGB = Vector3f(values[4], values[5], values[6]);
+        Sphere newSphere(temp, values[3], RGB);
         AllSpheres[numSpheres] = newSphere;
         numSpheres++;
 
@@ -263,8 +269,9 @@ bool parseLine(string line){
         numVerts++; 
 
     }else if (operand.compare("tri") == 0){
-        readvals(ss, 3 ,values);
-        Tri newTri(vertices[(int)values[0]], vertices[(int)values[1]], vertices[(int)values[2]]);
+        readvals(ss, 6 ,values);
+        Vector3f RGB = Vector3f(values[3], values[4], values[5]);
+        Tri newTri(vertices[(int)values[0]], vertices[(int)values[1]], vertices[(int)values[2]], RGB);
         AllTri[numTri] = newTri;
         numTri++;
     }
@@ -295,10 +302,6 @@ bool parseLine(string line){
 
     }else if (operand.compare("attenuation") == 0){
         readvals(ss, 3, values);
-    }else if (operand.compare("ambient") == 0){
-        readvals(ss, 3, values);
-        Color temp(values[0], values[1], values[2]);
-        ambientColor = temp; 
     }
 
     //MATERIALS
@@ -427,6 +430,7 @@ bool checkIntersection(Ray ray){
     bool intersection = false;
       for(int i=0; i<numSpheres; i++){
             if((sphereIntersection(AllSpheres[i], ray))){
+                currColor = AllSpheres[i].color;
                 intersection = true;
                break;
            }
@@ -435,6 +439,7 @@ bool checkIntersection(Ray ray){
      if(!intersection){
        for(int i=0; i<numTri; i++){
             if(triIntersection(AllTri[i], ray)){
+                currColor = AllTri[i].color; 
                 intersection = true;
                 break; 
             }
@@ -484,7 +489,7 @@ Color Trace(Ray ray, int depth) {
     for (int i=0; i<numLights; i++) {   
         Light light = AllLights[i];
 
-       // Vector3f ambient = ambientTerm(ambientColor, light);
+        ambientColor = Color(currColor[0], currColor[1], currColor[2]);
         Vector3f ambient = ambientColor.rgb_vec;
         returnColor.rgb_vec += ambient;
         Ray ShadowRay = generateShadowRay(light, intersect_point);
@@ -492,7 +497,8 @@ Color Trace(Ray ray, int depth) {
 
 
          if(checkIntersection(ShadowRay)){
-                return ambientColor;
+                returnColor.rgb_vec += ambientTerm(ambientColor, light);
+                break;
             }
                Vector3f viewVector = eye - intersect_point;
                viewVector.normalize();
@@ -563,7 +569,7 @@ int main(int argc, char* argv[]){
     outputImage(testbuffer);
     outputImage(testbuffer);
     image.normalize(0,255);
-    image.save("Triangle&dSphere.ppm");
+    image.save("Triangle.ppm");
     image.display(); 
     
     return 0;
