@@ -55,6 +55,7 @@ public:
     Light(int _type, Vector3f _LightCord, Vector3f _LightRGB){
         LightCord = _LightCord;
         LightRGB = _LightRGB;
+        type = _type; 
     };
     Light(){}
 };
@@ -97,7 +98,7 @@ Color black_pix(0.0, 0.0, 0.0);
 float sp_v;
 string out_file; 
 int maxvertsnorms;
-const int DIR = 1;
+const int DIRECTIONAL = 1;
 const int POINT = 0; 
 Light AllLights[10]; int numLights; 
 Sphere AllSpheres[100]; int numSpheres;
@@ -107,10 +108,13 @@ Vector3f vertices[100]; int numVerts;
 Vector3f intersect_point = Vector3f(0,0,0);
 Vector3f surface_normal = Vector3f(0,0,0);
 Vector3f eye = Vector3f(0,0,0);
-Vector3f UL = Vector3f(-1,1,-1);
-Vector3f UR = Vector3f(1,1,-1);
-Vector3f LR = Vector3f(1,-1,-1);
-Vector3f LL = Vector3f(-1,-1,-1);
+float glob_t; 
+
+
+Vector3f UL = Vector3f(-.5,.5,-1);
+Vector3f UR = Vector3f(.5,.5,-1);
+Vector3f LR = Vector3f(.5,-.5,-1);
+Vector3f LL = Vector3f(-.5,-.5,-1);
 
 
 //****************************************************
@@ -162,7 +166,7 @@ Ray GenerateRay(int pix_i, int pix_j){
     float v = ((float) pix_i/ (float) width) + 1/(width*2);
     Vector3f P;
     P = (u*(v*LL + (1-v)*UL)) + ((1-u)*(v*LR + (1-v)*UR));
-    return Ray(eye, P-eye, 20, 30);
+    return Ray(eye, P-eye, -FLT_MAX, FLT_MAX);
 
 }
 
@@ -181,6 +185,7 @@ Vector3f ambientTerm(Color color, Light myLight){
 
 Vector3f diffuseTerm(Color color, Light myLight, Vector3f surf_norm){
     float d;
+    myLight.LightRay.normalize();
     d = myLight.LightRay.dot(surf_norm);
     Vector3f d_color = color.rgb_vec;
     d = fmaxf(d, 0);
@@ -192,6 +197,7 @@ Vector3f diffuseTerm(Color color, Light myLight, Vector3f surf_norm){
 }
 
 Vector3f specularTerm(Color color, Vector3f surf_normal, Light myLight, Vector3f viewVector){
+    myLight.LightRay.normalize();
     Vector3f r_vec = (2*(myLight.LightRay.dot(surf_normal))*surf_normal) - myLight.LightRay;
     r_vec.normalize();
     Vector3f s_color = color.rgb_vec;
@@ -274,7 +280,7 @@ bool parseLine(string line){
     //LIGHTS
     else if (operand.compare("directional") == 0){
         readvals(ss, 6, values);
-        Light new_DirLight(DIR, Vector3f(values[0], values[1], values[2]), 
+        Light new_DirLight(DIRECTIONAL, Vector3f(values[0], values[1], values[2]), 
                                 Vector3f(values[3], values[4], values[5]));
         AllLights[numLights] = new_DirLight;
         numLights++;
@@ -361,10 +367,12 @@ bool sphereIntersection(Sphere sphere, Ray ray){
     }
     if(s0<0){
         intersect_point = p0 + (dir-p0)*s1; 
+        glob_t = s1; 
         surface_normal = (intersect_point - center)/sphere.radius;
         return true; 
     }
     intersect_point = p0 + (dir-p0)*s0; 
+    glob_t = s0;
     surface_normal = (intersect_point - center)/sphere.radius;
     return true;
     
@@ -384,6 +392,7 @@ bool triIntersection(Tri tri, Ray ray){
     float t = -(n.dot(o) + d) / NdotRaydir;
  
     Vector3f P = o + (t*ray.dir);
+    glob_t = t; 
 
     //INSIDE OUTSIDE TESTS
     Vector3f C;
@@ -431,7 +440,26 @@ bool checkIntersection(Ray ray){
             }
        }
    }
+
    return intersection;
+}
+
+Ray generateShadowRay(Light light, Vector3f intersect_point){
+    Ray ShadowRay; 
+     if(light.type == DIRECTIONAL){
+                ShadowRay.start = intersect_point+ 0.01*light.LightCord;
+                ShadowRay.dir = (light.LightCord);
+                ShadowRay.t_min = 0.1;
+                ShadowRay.t_max = FLT_MAX; 
+                
+            }
+            else{
+              ShadowRay.start = intersect_point + 0.01*light.LightCord;
+              ShadowRay.dir = light.LightCord - intersect_point;
+              ShadowRay.t_min = 0.1;
+              ShadowRay.t_max = 1; 
+            }
+        return ShadowRay;
 }
 
 
@@ -442,47 +470,35 @@ bool checkIntersection(Ray ray){
 
 Color Trace(Ray ray, int depth) {
    
- //  bool intersection = false; 
+   bool intersection = false; 
    Color returnColor = black_pix;
-   bool intersection = checkIntersection(ray);
+   intersection = checkIntersection(ray);
  //   if (depth > threshhold) {
    //     return black_pix;
   // }
     
-    if (!intersection) {
-        // No intersection
+    if (!intersection) {        // No intersection
         return black_pix;
     }    
 
-        for (int i=0; i<numLights; i++) {
-            Light light = AllLights[i];
-            Ray ShadowRay(light.LightCord, intersect_point, 0, 100);
+    for (int i=0; i<numLights; i++) {   
+        Light light = AllLights[i];
 
-            
-          //  if(checkIntersection(ShadowRay)){
-              //  printf("shadow....");
-            //    return black_pix;
-                //make shadow!!
-                //make sure not intersecting with self though...
-           // }
-        
+       // Vector3f ambient = ambientTerm(ambientColor, light);
+        Vector3f ambient = ambientColor.rgb_vec;
+        returnColor.rgb_vec += ambient;
+        Ray ShadowRay = generateShadowRay(light, intersect_point);
+        light.LightRay = ShadowRay.dir; 
 
-            if(light.type == DIR){
-                light.LightRay = -1*(light.LightCord);
-                light.LightRay.normalize();
-                
+
+         if(checkIntersection(ShadowRay)){
+                return ambientColor;
             }
-            else{
-              light.LightRay = light.LightCord - intersect_point;
-              light.LightRay.normalize();
-            }
-                
-               Vector3f viewVector = intersect_point - eye;
+               Vector3f viewVector = eye - intersect_point;
                viewVector.normalize();
-               Vector3f ambient = ambientTerm(ambientColor, light);
                Vector3f diffuse = diffuseTerm(diffuseColor, light, surface_normal);
                Vector3f specular = specularTerm(specularColor, surface_normal, light, viewVector);
-               returnColor.rgb_vec = ambient + diffuse + specular; 
+               returnColor.rgb_vec += diffuse + specular; 
         }
         /*
         // Handle mirror reflection
@@ -546,6 +562,8 @@ int main(int argc, char* argv[]){
     Color** testbuffer = render(height, width);
     outputImage(testbuffer);
     outputImage(testbuffer);
+    image.normalize(0,255);
+    image.save("Triangle&dSphere.ppm");
     image.display(); 
     
     return 0;

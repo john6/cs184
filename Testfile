@@ -2,19 +2,19 @@ size 400 400
 
 
 #sphere .5 .5 4 3
-#sphere .5 .5 4 1
-#sphere -1 1 4 1
-sphere 0 0 2 2
+#sphere -8 -8 -6 1
+sphere -1 1 -4 .5
+sphere 0 0 -4 1
 
 
 
 
 
-directional 200 200 -100 .6 .6 .6 
+directional -200 200 -100 .6 .6 .6 
 
 #point 200 200 -300 .6 .6 .6
 diffuse 1 1 0  
-#ambient .2 0 1
+ambient .2 0 1
 
 #specular .1 .1 .1 
 #shininess 16
