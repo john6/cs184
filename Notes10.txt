@@ -1,0 +1,7 @@
+"3WarpedShadowballs"
+
+uses blue ambient light
+all balls have been scaled by two in the Y axis 
+two of the balls are shadowing the third
+there is one directional light and one point light
+there is no reflection

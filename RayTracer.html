@@ -1,0 +1,257 @@
+    <HTML>
+    <HEAD>
+        <TITLE>Ray Tracer Example Images</TITLE>
+    </HEAD>
+
+    <body bgcolor = "black">
+        <font color = "white">
+    <body>
+    <div>
+        <h1>
+            Ray Tracer Example Images<br>
+            Shannon Axelrod<br>
+            John Russell<br>
+        </h1>
+        <p>
+        
+        Basic Requirments - NOTE: I have listed some of the commands needed to recreate each picture but when running our code they were stored in files<br>
+        <br>
+        The First Hurdle- Creating the Red Sphere, We call this "OMMYGODITSWORKING"<br>
+        <img src="image01.png"WIDTH = 300 HEIGHT = 300> <br><br>
+        size 1000 1000 
+        sphere 0 0 -5 2 1 0 0
+        point 0 0 200 .6 .6 .6<br>
+        The classic red sphere, rendered with one point light and only an ambient color of Red. <br>
+        Time: about 5 seconds<br><br> 
+
+
+            Next was adding lighting and shading. This one is "Longing for the days of Project 1"<br>
+            <img src="Image02.png"WIDTH = 500 HEIGHT = 500> <br><br>
+                size 640 640
+                sphere 0 0 -5 2 0 0 0
+                point -200 200 200 .6 .6 .6
+                diffuse 1 0 1<br> 
+                A shaded blue sphere similar to what we did in Project 1. One point light, one directional light, diffuse and specular componenets. <br>
+                Time: about 10 seconds<br><br>
+
+        Now it was time to get some multiple spheres and colors going. <br>
+        <img src="Image03.png"WIDTH = 500 HEIGHT = 500> <br><br>
+        #green sphere 0 -1 -5 .2 .1 .5 .1 
+        #purple sphere 0 1 -5 .2 0 0 .2
+        #blue sphere 0 0 -5 .2 0 0 1
+        #red sphere 0 2 -5 .2 .5 0 0
+        #yellow sphere 0 -2 -5 .2 1 1 0
+        directional 0 0 5 .6 .6 .6 
+        point -200 -200 -200 .6 .6 .6
+        point -20 -20 -300 .6 .6 .6
+        diffuse 1 0 1  
+        specular 1 1 1 
+        shininess 16<br>
+        A few shaded spheres in different colors. Point and directional light, specular and diffuse terms added.<br>
+        Time: about 30 seconds<br><br><br>
+
+        Next was getting some triangles. Title: "Minimalism with polygons" and "Tiles and Errors, a pun"<br>
+        <img src="Image04.png"WIDTH = 500 HEIGHT = 500> 
+        <img src="Image05.png"WIDTH = 500 HEIGHT = 500><br>
+        First: size 640 640 
+
+
+vertex 20 20 -100
+vertex -20 -20 -100
+vertex -20 20 -100
+tri 0 1 2 0 .4 .4 
+
+vertex 20 20 -200
+vertex -20 -60 -100
+vertex -20 20 -100
+tri 0 1 2 .4 0 0 
+
+specular 1 1 1
+shininess 16<br>
+Two different sized triangles with seperate colors and specular shading. <br> 
+Time: about 20 seconds<br><br>
+
+Second: size 640 640
+
+point 0 0  200 .6 .6 .6
+point 0 0 -200 .6 .6 .6
+vertex 20 20 -100
+vertex -20 -20 -100
+vertex -20 20 -100
+tri 0 1 2 1 0 0 
+vertex 20 20 -100
+vertex -20 -20 -100
+vertex  20 -20 -100
+tri 3 4 5 0 0 1 
+vertex 60 -20 -100
+vertex 20 -20 -100
+vertex  20 20 -100
+tri 6 7 8 1 1 0 
+vertex 60 20 -100
+vertex 20 20 -100
+vertex 60 -20 -100
+tri 9 10 11 0 1 0 
+vertex -20 -20 -100
+vertex -60 -20 -100
+vertex -20 20 -100
+tri 12 13 14 1 0 1 
+vertex -20 20 -100
+vertex -60 20 -100
+vertex -60 -20 -100
+tri 15 16 17 0 1 1 <br>
+Shaded triangles in different colors. Specular and point lights on. <br>
+Time: about 30 seconds<br><br><br>
+
+
+        Then came Transformations. TITLE: "Circle and Elipse"<br>
+        <img src="Image06.png"WIDTH = 500 HEIGHT = 500> 
+        <img src="Image07.png"WIDTH = 500 HEIGHT = 500><br><br>
+        size 1000 1000 
+        sphere -.25 1 -4 .5 .1 0 .1 
+        sphere .1 -1.1 -4 .3 0 .1 0
+        directional -200 200 -100 .5 .5 .6 
+        diffuse 1 1 0  
+        specular .1 .1 .1 
+        shininess 16
+        One has been transoformed about the Y axis, and the other has not<br>
+        Time: about 30 seconds<br><br><br>
+
+        Now for some Shadowing. Title: "Shady Ladies"<br>  
+        <img src="BlueShadow.png"WIDTH = 500 HEIGHT = 500> 
+        <img src="Image08.png"WIDTH = 500 HEIGHT = 500>
+        <img src="MoreShadows.png"WIDTH = 500 HEIGHT = 500> <br>
+        size 640 640
+
+sphere 0 -2 -5 .5 0 .4 .4 
+sphere 0 2 -5 .5 0 .4 .4 
+point 0 -200 -5 .6 .6 .6
+specular 1 1 1
+shininess 16<br>
+A prime example of shadowing. The two spheres are the same colors but one is clearly being shadowed by the other from the Point light located on the same z axis as the spheres. Specular light is also on. <br>
+Time: about 30 seconds<br>
+The other two we had saved as images but not their input files. Still wanted to put them up though!<br><br><br> 
+
+
+        The final step was Recursive Reflections. TITLE: "The Recursive Rainbow" <br>
+         <img src="Image09.png"WIDTH = 500 HEIGHT = 500> <br><br>
+         size 1000 1000 
+         sphere 0 -1.2 -5 .75 1 0 0 
+         sphere 0 1.2 -5 .75 0 0 1 
+         sphere -1.2 0 -5 .75 1 1 0 
+         sphere 1.2 0 -5 .75 0 1 0 
+         point 0 0 200 .6 .6 .6
+         kr .5
+         specular 1 1 1 
+         shininess 16<br>
+         The first reflective image. Rendered with a max depth of 5 and a point light centered directly towards the origin the four spheres are clearly reflecting each other. Specular componenet also on for all spheres. <br>
+         Time: about 1 minute<br><br><br> 
+
+         Now putting it all together.<br>
+        <img src="Image10.png"WIDTH = 500 HEIGHT = 500>
+         <img src="Image11.png"WIDTH = 500 HEIGHT = 500>
+         <img src="Image12.png"WIDTH = 500 HEIGHT = 500>
+         <img src="Image13.png"WIDTH = 500 HEIGHT = 500><br>
+         Upper Right: size 1000 1000 
+
+sphere -.69 .75 -3.9 .21
+sphere .15 .70 -3.8 .4
+sphere 0 -.75 -4 .75
+
+directional -20 20 -10 .6 .6 .6 
+
+point 200 200 -75 .6 .6 .6
+diffuse 1 0 0  
+ambient 0 .1 .15
+specular .1 .6 .1 
+
+shininess 14<br>
+"3WarpedShadowballs"
+
+uses blue ambient light
+all balls have been scaled by two in the Y axis 
+two of the balls are shadowing the third
+there is one directional light and one point light
+there is no reflection<br>
+Time: about 30 seconds<br><br><br>
+Upper Left: size 1000 1000 
+sphere -2 2 -5 .75 0 1 1 
+sphere 2 2 -5 .75 1 1 0 
+sphere 2 -2 -5 .75 1 1 1 
+sphere -2 -2 -5 .75 .5 1 0 
+sphere 0 -2 -5 .75 1 0 0 
+sphere 0 2 -5 .75 1 0 1 
+point 0 0  200 .6 .6 .6
+point 0 0 -200 .6 .6 .6
+kr .5
+vertex 20 20 -100
+vertex -20 -20 -100
+vertex -20 20 -100
+tri 0 1 2 1 0 0 
+vertex 20 20 -100
+vertex -20 -20 -100
+vertex  20 -20 -100
+tri 3 4 5 0 0 1 
+vertex 60 -20 -100
+vertex 20 -20 -100
+vertex  20 20 -100
+tri 6 7 8 1 1 0 
+vertex 60 20 -100
+vertex 20 20 -100
+vertex 60 -20 -100
+tri 9 10 11 0 1 0 
+vertex -20 -20 -100
+vertex -60 -20 -100
+vertex -20 20 -100
+tri 12 13 14 1 0 1 
+vertex -20 20 -100
+vertex -60 20 -100
+vertex -60 -20 -100
+tri 15 16 17 0 1 1 <br>
+My favorite image. 6 spheres and 6 triangles. Reflecting off each other in beautiful harmony. One point light used, a max recursive depth of 5 and specular terms on for all objects. <br>
+Time: about 2 minutes<br><br><br>
+Lower Left: size 1000 1000 
+
+sphere 0 -1.2 -5 .75 1 0 0 
+sphere 0 1.2 -5 .75 0 1 0 
+
+sphere -1.6 0 -5 .75 0 0 1 
+sphere 1.6 0 -5 1 0 0 0 
+
+directional 0 0 1 .6 .6 .6
+point -50 -50 200 .6 .6 .6
+point 50 50 200 .6 .6 .6
+kr .5
+specular .6 .6 .6 
+shininess 16<br>
+"ReflectionTest"
+There are four balls in this image, though though the bottom one is eliptical and black
+This image demonstrates reflection
+This image is 1000 by 100 pixels<br>
+Time: about 45 seconds<br><br><br>
+Lower Right: size 1000 1000 
+
+
+
+sphere 0 -2 -5 .5 0 0 .4 
+sphere 0 2 -5 .5 0 0 .4 
+sphere 0 0 -5 .5 0 0 .4
+
+sphere -2 2 -5 .75 0 .5 .5 
+sphere 2 2 -5 .75 0 .5 .5 
+sphere 2 -2 -5 .75 0 .5 .5 
+sphere -2 -2 -5 .75 .5 .5 .5 
+
+directional 200 200 200 .6 .6 .6 
+
+point 0 -200 -5 .6 .6 .6
+
+kr .5
+diffuse .1 0 .4  
+
+specular 1 1 1 
+shininess 16    <br>
+Our final image, it has it all shading reflection shadows. The four corner spheres are the same color and the three center spheres are also the same but becasue of the shadows and reflections they appear much different. On point light directed towards the origin and on coming from the right side of the image. Each spere also has a specular term. Max recursive depth was 5. <br>
+
+
+</font>
+</body>

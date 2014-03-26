@@ -1,0 +1,15 @@
+size 640 640 
+
+
+vertex 20 20 -100
+vertex -20 -20 -100
+vertex -20 20 -100
+tri 0 1 2 0 .4 .4 
+
+vertex 20 20 -200
+vertex -20 -60 -100
+vertex -20 20 -100
+tri 0 1 2 .4 0 0 
+
+specular 1 1 1
+shininess 16

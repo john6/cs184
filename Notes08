@@ -1,0 +1,1 @@
+A prime example of shadowing. The two spheres are the same colors but one is clearly being shadowed by the other from the Point light located on the same z axis as the spheres. Specular light is also on. 

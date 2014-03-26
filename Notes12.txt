@@ -1,0 +1,4 @@
+"ReflectionTest"
+There are four balls in this image, though though the bottom one is eliptical and black
+This image demonstrates reflection
+This image is 1000 by 100 pixels

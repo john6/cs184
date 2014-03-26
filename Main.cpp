@@ -643,7 +643,7 @@ int main(int argc, char* argv[]){
     outputImage(testbuffer);
     outputImage(testbuffer);
     image.normalize(0,255);
-    image.save("Reflection.ppm");
+    image.save("Test.bmp");
     image.display(); 
     
     return 0;

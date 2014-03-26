@@ -1,0 +1,28 @@
+size 640 640
+
+point 0 0  200 .6 .6 .6
+point 0 0 -200 .6 .6 .6
+vertex 20 20 -100
+vertex -20 -20 -100
+vertex -20 20 -100
+tri 0 1 2 1 0 0 
+vertex 20 20 -100
+vertex -20 -20 -100
+vertex  20 -20 -100
+tri 3 4 5 0 0 1 
+vertex 60 -20 -100
+vertex 20 -20 -100
+vertex  20 20 -100
+tri 6 7 8 1 1 0 
+vertex 60 20 -100
+vertex 20 20 -100
+vertex 60 -20 -100
+tri 9 10 11 0 1 0 
+vertex -20 -20 -100
+vertex -60 -20 -100
+vertex -20 20 -100
+tri 12 13 14 1 0 1 
+vertex -20 20 -100
+vertex -60 20 -100
+vertex -60 -20 -100
+tri 15 16 17 0 1 1 

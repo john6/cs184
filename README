@@ -1,9 +1,13 @@
 Names: Shannon Axelrod and John Russel
 
-Platform: OSx
+Platform: OSx 10.9
 
-Submitted by: 
+Submitted by:Shannon Axelrod
 
 Source Code: Located in Raytracer folder 
 
 External Libraries Shoutout: Eigen and CImg
+
+Notes:
+
+Out code outputs .ppm images but I have converted them to .png for the webpage. I am submitting the .png files. Our images are rendered on the command line by compiling then running ./Main “filename”. All of our scenes we’re written ourselves. I have included the files that described each corresponding named image. Transformations we implement in our main file and do not get inputed by the input file. 

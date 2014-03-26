@@ -1,0 +1,5 @@
+"circleAndElipse"
+These two balls have seperate colors
+One has been transoformed about the Y axis, and the other has not
+There is yellow diffuse lighting
+there is only one directional light

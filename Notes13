@@ -1,0 +1,1 @@
+Our final image, it has it all shading reflection shadows. The four corner spheres are the same color and the three center spheres are also the same but becasue of the shadows and reflections they appear much different. On point light directed towards the origin and on coming from the right side of the image. Each spere also has a specular term. Max recursive depth was 5. 

@@ -1,0 +1,6 @@
+size 640 640
+sphere 0 0 -5 2 0 0 0 
+point -200 200 200 .6 .6 .6
+diffuse 1 0 1 
+specular 1 1 1
+shininess 16
